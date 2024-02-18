@@ -1,8 +1,6 @@
 import orjson
 from .abstract_parser import AbstractParser
 
-# https://data.seattle.gov/resource/tmmm-ytt6.json?$query=SELECT%20`materialtype`,%20`checkoutyear`,%20`checkoutmonth`,%20`checkouts`,%20`title`,%20`isbn`%20WHERE%20(`isbn`%20IS%20NOT%20NULL)%20AND%20caseless_one_of(%20`materialtype`,%20%22BOOK,%20ER%22,%20%22BOOK%22,%20%22AUDIOBOOK%22,%20%22EBOOK%22%20)%20ORDER%20BY%20`title`%20DESC%20NULL%20LAST,%20`isbn`%20DESC%20NULL%20LAST%20LIMIT%202147483647
-
 class SLDataParser(AbstractParser):
     """
     A parser for Seattle Library data files.

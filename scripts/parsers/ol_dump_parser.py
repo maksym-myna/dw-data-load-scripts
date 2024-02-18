@@ -68,7 +68,7 @@ class OLDumpParser(OLAbstractParser):
         for f_out in output_files.values():
             f_out.close()
 
-        return [rf'..\open library dump\data\{type_name}.jsonl' for type_name in self.__type_mapping]
+        return [rf'open library dump\data\{type_name}.jsonl' for type_name in self.__type_mapping]
 
     def __process_edition(self, obj):
         """

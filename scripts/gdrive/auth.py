@@ -1,3 +1,4 @@
+from json import JSONDecodeError
 import os.path
 
 from google.auth.transport.requests import Request
@@ -7,7 +8,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 class GDriveAuth:
   SCOPES = ["https://www.googleapis.com/auth/drive"]
 
-  creds = None
+  # creds = None
   def __init__(self):
     """
     Initializes the Auth class.
@@ -22,17 +23,21 @@ class GDriveAuth:
     Returns:
       None
     """
-    if os.path.exists("token.json"):
-      self.creds = Credentials.from_authorized_user_file("token.json", self.SCOPES)
 
+    try:
+      if os.path.exists("token.json"):
+        self.creds = Credentials.from_authorized_user_file('token.json', self.SCOPES)
+    except JSONDecodeError as e:
+      self.creds = None
+      
     if not self.creds or not self.creds.valid:
       if self.creds and self.creds.expired and self.creds.refresh_token:
         self.creds.refresh(Request())
       else:
         flow = InstalledAppFlow.from_client_secrets_file(
-          r'gdrive\credentials.json', self.SCOPES
+          r'scripts\gdrive\credentials.json', self.SCOPES
         )
         creds = flow.run_local_server(port=0)
 
-      with open("token.json", "w") as token:
+      with open('token.json', 'w') as token:
         token.write(creds.to_json())
