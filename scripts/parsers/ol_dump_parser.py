@@ -86,8 +86,8 @@ class OLDumpParser(OLAbstractParser):
         subtitle = obj.get('subtitle', '')
         title = self.__html_escape(f'{title}: {subtitle}') if subtitle else title
         publishers = [self.__html_escape(publisher) for publisher in obj.get('publishers', [])]
-        isbn_10 = obj.get('isbn_10', '')
-        isbn_13 = obj.get('isbn_13', '')
+        isbn_10 = obj.get('isbn_10', [])
+        isbn_13 = obj.get('isbn_13', [])
         series = obj.get('series', [])
         languages = [self.parse_id(lang['key']) for lang in obj.get('languages', [])]
         number_of_pages = obj.get('number_of_pages', 0)
@@ -167,7 +167,7 @@ class OLDumpParser(OLAbstractParser):
         """
         
         created = self.__get_created(obj)
-        id = obj.get('key', '')
+        id = self.parse_id(obj.get('key', ''))
         name = obj.get('name', '')
         return {
             'id': id,

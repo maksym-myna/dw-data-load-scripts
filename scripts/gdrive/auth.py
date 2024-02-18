@@ -28,6 +28,7 @@ class GDriveAuth:
       if os.path.exists("token.json"):
         self.creds = Credentials.from_authorized_user_file('token.json', self.SCOPES)
     except JSONDecodeError as e:
+      print(e)
       self.creds = None
       
     if not self.creds or not self.creds.valid:
