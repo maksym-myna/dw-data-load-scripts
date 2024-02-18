@@ -1,0 +1,7 @@
+/__pycache
+
+*.json
+*.jsonl
+*.txt
+*.pyc
+*.csv
