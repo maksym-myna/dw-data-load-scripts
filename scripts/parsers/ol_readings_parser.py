@@ -1,10 +1,22 @@
 from parsers.ol_abstract_parser import OLAbstractParser
+from parsers.abstract_parser import AbstractParser
 from enum import Enum
 import orjson
 import glob
 import os
 
+from enum import Enum
+
 class ReadingStatus(Enum):
+    """
+    Enum representing the reading status of a book.
+    
+    Attributes:
+        WANT_TO_READ (str): Indicates that the book is in the "Want to Read" status.
+        CURRENTLY_READING (str): Indicates that the book is in the "Currently Reading" status.
+        ALREADY_READ (str): Indicates that the book is in the "Already Read" status.
+    """
+    
     WANT_TO_READ = 'Want to Read'
     CURRENTLY_READING = 'Currently Reading'
     ALREADY_READ = 'Already Read'
@@ -27,6 +39,9 @@ class OLReadingsParser(OLAbstractParser):
         Returns:
             list[str]: names of output files.
         """
+        if not AbstractParser.is_path_valid(input_file):
+            raise NotADirectoryError(input_file)
+        
         with open(input_file, 'r', encoding='utf-8') as f_in, open(output_file, 'w', encoding='utf-8') as f_out:
             for line in f_in:
                 reading_info = self.__parse_line(line)

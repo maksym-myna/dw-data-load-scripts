@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod 
+import os
 
 class AbstractParser(ABC):
     """
@@ -6,12 +7,16 @@ class AbstractParser(ABC):
     """
 
     @abstractmethod
-    def process_file(self, input, output):
+    def process_file(self, input_file, output):
         """
         Abstract method to process a file.
 
         Args:
-            input: The input file path.
+            input_file: The input file path.
             output: The output file path.
         """
-        pass
+        
+    @staticmethod
+    def is_path_valid(path):
+        return os.path.abspath('.') in os.path.abspath(path)
+        

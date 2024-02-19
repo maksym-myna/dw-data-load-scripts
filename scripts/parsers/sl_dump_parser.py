@@ -1,5 +1,6 @@
 import orjson
 from .abstract_parser import AbstractParser
+from parsers.abstract_parser import AbstractParser
 
 class SLDataParser(AbstractParser):
     """
@@ -16,6 +17,9 @@ class SLDataParser(AbstractParser):
             input_file (str): The path to the input file.
             output_file (str): The path to the output file.
         """
+        if not AbstractParser.is_path_valid(input_file):
+            raise NotADirectoryError(input_file)
+
         with open(input_file, 'r', encoding='utf-8') as f_in, open(output_file, 'w', encoding='utf-8') as f_out:
             for line in f_in:
                 try:
@@ -29,8 +33,9 @@ class SLDataParser(AbstractParser):
                     print(e)
                     continue
         return [output_file]
-            
-    def __parse_line(self, line):
+
+    @classmethod       
+    def __parse_line(line):
         """
         Parse a line of JSON data and extract relevant information.
 

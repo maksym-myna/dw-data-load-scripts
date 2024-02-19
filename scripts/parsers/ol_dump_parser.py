@@ -1,14 +1,10 @@
 from parsers.ol_abstract_parser import OLAbstractParser
+from .abstract_parser import AbstractParser
 from datetime import datetime
 import orjson
 import html
 import os
 import re
-
-# CHUNK_SIZE = 1_000_000
-# def __init__(self, chunk_size):
-#         self.CHUNK_SIZE = chunk_size
-    
 
 class OLDumpParser(OLAbstractParser):  
     """
@@ -29,6 +25,8 @@ class OLDumpParser(OLAbstractParser):
         Returns:
             list[str]: names of output files.
         """
+        if not AbstractParser.is_path_valid(input_file):
+            raise NotADirectoryError(input_file)
 
         with open(input_file, 'r', encoding='utf-8') as f_in:
             for line in f_in:
@@ -61,7 +59,10 @@ class OLDumpParser(OLAbstractParser):
         # Get the latest file
         latest_file = max(files, key=lambda f: f.name)
 
-        output_files = {type_name: open(os.path.join(directory, f'data\{type_name}.jsonl'), 'w', encoding='utf-8') for type_name in self.__type_mapping}
+        if not AbstractParser.is_path_valid(directory):
+            raise NotADirectoryError(directory)
+
+        output_files = {type_name: open(os.path.join(directory, rf'data\{type_name}.jsonl'), 'w', encoding='utf-8') for type_name in self.__type_mapping}
 
         output_files = self.process_file(latest_file.path, output_files)
 
@@ -175,7 +176,8 @@ class OLDumpParser(OLAbstractParser):
             'created': created
         }
     
-    def __get_created(self, obj):
+    @classmethod
+    def __get_created(obj):
         """
         Get the created timestamp from an object.
 
@@ -194,7 +196,8 @@ class OLDumpParser(OLAbstractParser):
             raise Exception('No created or last_modified field')
         return created
         
-    def __html_escape(self, s):
+    @classmethod
+    def __html_escape(s):
         """
         Escapes HTML entities in a string.
 

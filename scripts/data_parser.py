@@ -4,6 +4,7 @@ import gdrive.auth as gauth
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
+from parsers.abstract_parser import AbstractParser
 import parsers.ol_readings_parser as olreadsp
 import parsers.ol_ratings_parser as olratesp
 import parsers.ol_dump_parser as oldumpp
@@ -14,9 +15,23 @@ import requests
 import gzip
 
 def download_file(url, download_path):
+    """
+    Downloads a file from the given URL and saves it to the specified download path.
+
+    Args:
+        url (str): The URL of the file to be downloaded.
+        download_path (str): The path where the downloaded file will be saved.
+
+    Returns:
+        str: The path of the downloaded file.
+
+    """
     response = requests.get(url, stream=True)
     total_size = int(response.headers.get('content-length', 0))
     downloaded_size = 0
+
+    if not AbstractParser.is_path_valid(download_path):
+        raise NotADirectoryError(download_path)
 
     with open(download_path, 'wb') as f:
         for chunk in response.iter_content(chunk_size=1024*1024): 
@@ -28,25 +43,46 @@ def download_file(url, download_path):
     return download_path
 
 def unarchive_file(archive_path, unarchive_path):
+    """
+    Unarchives a gzip compressed file.
+
+    Args:
+        archive_path (str): The path to the gzip compressed file.
+        unarchive_path (str): The path to store the unarchived file.
+
+    Returns:
+        str: The path to the unarchived file.
+    """
     # Extract the original file name
     original_file_name = os.path.splitext(os.path.basename(archive_path))[0]
     total_size = os.path.getsize(archive_path)
     unarchived_size = 0
     
+    if not AbstractParser.is_path_valid(archive_path):
+        raise NotADirectoryError(archive_path)
+
     # Unpack the file in chunks
-    with gzip.open(archive_path, 'rb') as f_in:
-        with open(os.path.join(unarchive_path, original_file_name), 'wb') as f_out:
-            while True:
-                chunk = f_in.read(1024*1024*256)  # read 256MB at a time
-                if not chunk:
-                    break
-                unarchived_size += len(chunk)
-                f_out.write(chunk)
-                print(f"Unarchival progress: {100 * unarchived_size / total_size:.2f}%")
+    with gzip.open(archive_path, 'rb') as f_in, open(os.path.join(unarchive_path, original_file_name), 'wb') as f_out:
+        while True:
+            chunk = f_in.read(1024*1024*256)  # read 256MB at a time
+            if not chunk:
+                break
+            unarchived_size += len(chunk)
+            f_out.write(chunk)
+            print(f"Unarchival progress: {100 * unarchived_size / total_size:.2f}%")
 
     return unarchive_path
 
 def delete_file(*path):
+    """
+    Deletes the specified files.
+
+    Args:
+        *path: Variable number of file paths to be deleted.
+
+    Returns:
+        None
+    """
     for file in path:
         os.remove(file)
 

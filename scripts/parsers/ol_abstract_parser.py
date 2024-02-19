@@ -17,7 +17,6 @@ class OLAbstractParser(AbstractParser):
         Returns:
         None
         """
-        pass
     
     def parse_id(self, key):
         """
