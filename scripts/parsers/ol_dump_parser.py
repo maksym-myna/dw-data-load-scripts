@@ -56,7 +56,7 @@ class OLDumpParser(OLAbstractParser):
 
         # Get a list of all files in the directory that match the pattern
         files = (entry for entry in os.scandir(directory) if entry.is_file()
-                            and pattern.match(entry.name))
+                        and pattern.match(entry.name))
 
         # Get the latest file
         latest_file = max(files, key=lambda f: f.name)
@@ -65,7 +65,7 @@ class OLDumpParser(OLAbstractParser):
             raise NotADirectoryError(directory)
 
         output_files = {type_name: open(os.path.join(directory,
-                rf'data\{type_name}.jsonl'), 'w', encoding='utf-8')
+                    rf'data\{type_name}.jsonl'), 'w', encoding='utf-8')
                                 for type_name in self.__type_mapping}
 
         output_files = self.process_file(latest_file.path, output_files)
@@ -91,7 +91,7 @@ class OLDumpParser(OLAbstractParser):
         subtitle = obj.get('subtitle', '')
         title = self.__html_escape(f'{title}: {subtitle}') if subtitle else title
         publishers = [self.__html_escape(publisher)
-                            for publisher in obj.get('publishers', [])]
+                        for publisher in obj.get('publishers', [])]
         isbn_10 = obj.get('isbn_10', [])
         isbn_13 = obj.get('isbn_13', [])
         series = obj.get('series', [])
@@ -130,7 +130,7 @@ class OLDumpParser(OLAbstractParser):
         subtitle = obj.get('subtitle', '')
         title = self.__html_escape(f'{title}: {subtitle}') if subtitle else title
         authors = [self.parse_id(author['author']['key'])
-                            for author in obj.get('authors', [])]
+                        for author in obj.get('authors', [])]
         id = self.parse_id(obj.get('key', ''))
         subjects = [self.__html_escape(subject) for subject in obj.get('subjects', [])]
         return {

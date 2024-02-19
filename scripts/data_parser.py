@@ -113,8 +113,8 @@ def upload_to_drive(service, files):
                 print(f"{file_name} is {int(status.progress() * 100)}% uploaded.")
         print("Uploaded!")
         versions = service.revisions().list(fileId=id).execute()
-        service.revisions().delete(fileId=id, revisionId=\
-                                   versions['revisions'][0]['id']).execute()
+        service.revisions().delete(fileId=id, revisionId=versions
+                                   ['revisions'][0]['id']).execute()
 
 
 def main():
@@ -153,10 +153,10 @@ def main():
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         list_of_file_lists = {executor.submit(parser.process_latest_file, directory)
-                            for parser in ol_parsers}
+                               for parser in ol_parsers}
         list_of_file_lists.add(executor.submit(sl_parser.process_file,
                     r'seattle library dump\checkouts.json',
-                        r'seattle library dump\data\seattle_library.json'))
+                            r'seattle library dump\data\seattle_library.json'))
 
         for future in concurrent.futures.as_completed(list_of_file_lists):
             try:
