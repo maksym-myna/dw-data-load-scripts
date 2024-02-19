@@ -113,8 +113,8 @@ def upload_to_drive(service, files):
                 print(f"{file_name} is {int(status.progress() * 100)}% uploaded.")
         print("Uploaded!")
         versions = service.revisions().list(fileId=id).execute()
-        service.revisions().delete(fileId=id, revisionId=versions['revisions'][0]['id']) \
-            .execute()
+        service.revisions().delete(fileId=id, revisionId= \
+                                   versions['revisions'][0]['id']).execute()
 
 
 def main():
@@ -135,12 +135,12 @@ def main():
             'open library dump/ol_dump_reading-log_latest.txt.gz'
     }
     sl_files = {
-    'https://data.seattle.gov/resource/tmmm-ytt6.json?$query=SELECT%20`materialtype`,'
-    '%20`checkoutyear`,%20`checkoutmonth`,%20`checkouts`,%20`title`,%20`isbn`'
-    '%20WHERE%20(`isbn`%20IS%20NOT%20NULL)%20AND%20caseless_one_of(%20`materialtype`,'
-    '%20%22BOOK,%20ER%22,%20%22BOOK%22,%20%22AUDIOBOOK%22,%20%22EBOOK%22%20)'
-    'ORDER%20BY%20`title`%20DESC%20NULL%20LAST,%20`isbn`%20'
-    'DESC%20NULL%20LAST%20LIMIT%202147483647' : 'seattle library dump/checkouts.json'
+        'https://data.seattle.gov/resource/tmmm-ytt6.json?$query=SELECT%20'
+        '`materialtype`,%20`checkoutyear`,%20`checkoutmonth`,%20`checkouts`,%20`title'
+        '`,%20`isbn`%20WHERE%20(`isbn`%20IS%20NOT%20NULL)%20AND%20caseless_one_of(%20'
+        '`materialtype`,%20%22BOOK,%20ER%22,%20%22BOOK%22,%20%22AUDIOBOOK%22,%20'
+        '%22EBOOK%22%20)ORDER%20BY%20`title`%20DESC%20NULL%20LAST,%20`isbn`%20DESC'
+        '%20NULL%20LAST%20LIMIT%202147483647' : 'seattle library dump/checkouts.json'
     }
     directory = r'open library dump'
 
@@ -153,10 +153,10 @@ def main():
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         list_of_file_lists = {executor.submit(parser.process_latest_file, directory)
-                for parser in ol_parsers}
-        list_of_file_lists.add(executor.submit(sl_parser.process_file, 
-            r'seattle library dump\checkouts.json', 
-            r'seattle library dump\data\seattle_library.json'))
+                                for parser in ol_parsers}
+        list_of_file_lists.add(executor.submit(sl_parser.process_file,
+                r'seattle library dump\checkouts.json',
+                    r'seattle library dump\data\seattle_library.json'))
 
         for future in concurrent.futures.as_completed(list_of_file_lists):
             try:
