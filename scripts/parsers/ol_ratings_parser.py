@@ -38,7 +38,7 @@ class OLRatingsParser(OLAbstractParser):
             raise NotADirectoryError(input_file)
 
         with open(input_file, 'r', encoding='utf-8') as f_in, \
-            open(output_file, 'w', encoding='utf-8') as f_out:
+                open(output_file, 'w', encoding='utf-8') as f_out:
             for line in f_in:
                 obj = self.__parse_line(line)
                 f_out.write(orjson.dumps(obj).decode('utf-8') + '\n')

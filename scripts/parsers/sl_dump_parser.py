@@ -23,7 +23,7 @@ class SLDataParser(AbstractParser):
             raise NotADirectoryError(input_file)
 
         with open(input_file, 'r', encoding='utf-8') as f_in, \
-            open(output_file, 'w', encoding='utf-8') as f_out:
+                open(output_file, 'w', encoding='utf-8') as f_out:
             for line in f_in:
                 try:
                     line = line.replace('[', '').replace(']', '').replace(',{', '{')

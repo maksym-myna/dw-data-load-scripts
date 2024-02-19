@@ -55,8 +55,8 @@ class OLDumpParser(OLAbstractParser):
         pattern = pattern = re.compile(r'ol_dump_\d{4}-\d{2}-\d{2}.txt')
 
         # Get a list of all files in the directory that match the pattern
-        files = (entry for entry in os.scandir(directory) if entry.is_file() \
-            and pattern.match(entry.name))
+        files = (entry for entry in os.scandir(directory) if entry.is_file()
+                and pattern.match(entry.name))
 
         # Get the latest file
         latest_file = max(files, key=lambda f: f.name)
@@ -64,17 +64,17 @@ class OLDumpParser(OLAbstractParser):
         if not AbstractParser.is_path_valid(directory):
             raise NotADirectoryError(directory)
 
-        output_files = {type_name: open(os.path.join(directory, \
-            rf'data\{type_name}.jsonl'), 'w', encoding='utf-8') \
-                for type_name in self.__type_mapping}
+        output_files = {type_name: open(os.path.join(directory,
+            rf'data\{type_name}.jsonl'), 'w', encoding='utf-8')
+                    for type_name in self.__type_mapping}
 
         output_files = self.process_file(latest_file.path, output_files)
 
         for f_out in output_files.values():
             f_out.close()
 
-        return [rf'open library dump\data\{type_name}.jsonl'\
-            for type_name in self.__type_mapping]
+        return [rf'open library dump\data\{type_name}.jsonl'
+                for type_name in self.__type_mapping]
 
     def __process_edition(self, obj):
         """
@@ -90,8 +90,8 @@ class OLDumpParser(OLAbstractParser):
         title = obj.get('title', '')
         subtitle = obj.get('subtitle', '')
         title = self.__html_escape(f'{title}: {subtitle}') if subtitle else title
-        publishers = [self.__html_escape(publisher)\
-            for publisher in obj.get('publishers', [])]
+        publishers = [self.__html_escape(publisher)
+                for publisher in obj.get('publishers', [])]
         isbn_10 = obj.get('isbn_10', [])
         isbn_13 = obj.get('isbn_13', [])
         series = obj.get('series', [])
@@ -129,8 +129,8 @@ class OLDumpParser(OLAbstractParser):
         title = obj.get('title', '')
         subtitle = obj.get('subtitle', '')
         title = self.__html_escape(f'{title}: {subtitle}') if subtitle else title
-        authors = [self.parse_id(author['author']['key'])\
-            for author in obj.get('authors', [])]
+        authors = [self.parse_id(author['author']['key'])
+                for author in obj.get('authors', [])]
         id = self.parse_id(obj.get('key', ''))
         subjects = [self.__html_escape(subject) for subject in obj.get('subjects', [])]
         return {

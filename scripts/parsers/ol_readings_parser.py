@@ -43,7 +43,7 @@ class OLReadingsParser(OLAbstractParser):
             raise NotADirectoryError(input_file)
 
         with open(input_file, 'r', encoding='utf-8') as f_in, \
-            open(output_file, 'w', encoding='utf-8') as f_out:
+                open(output_file, 'w', encoding='utf-8') as f_out:
             for line in f_in:
                 reading_info = self.__parse_line(line)
                 f_out.write(orjson.dumps(reading_info).decode('utf-8') + '\n')
