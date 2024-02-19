@@ -60,12 +60,12 @@ def unarchive_file(archive_path, unarchive_path):
     total_size = os.path.getsize(archive_path)
     unarchived_size = 0
 
-    # Unpack the file in chunks
-
-    if not AbstractParser.is_path_valid(archive_path) or not AbstractParser.is_path_valid(unarchive_path):
+    if not AbstractParser.is_path_valid(archive_path) or \
+            not AbstractParser.is_path_valid(unarchive_path):
         raise NotADirectoryError(archive_path)
-    
-    with gzip.open(archive_path, 'rb') as f_in, open(os.path.join(unarchive_path, original_file_name), 'wb') as f_out:
+
+    with gzip.open(archive_path, 'rb') as f_in, \
+            open(os.path.join(unarchive_path, original_file_name), 'wb') as f_out:
         while True:
             chunk = f_in.read(1024*1024*256)  # read 256MB at a time
             if not chunk:
@@ -96,7 +96,8 @@ def upload_to_drive(service, files):
     for file_location in files:
         file_name = file_location.split('\\')[-1]
         search = service.files().list(q=f"name='{file_name}'").execute()
-        media_body = MediaFileUpload(file_location, mimetype='application/json', resumable=True)
+        media_body = MediaFileUpload(file_location, mimetype='application/json',
+                                     resumable=True)
         file = search.get('files')[0]
         id = file.get('id')
 
@@ -125,13 +126,21 @@ def main():
     ]
     sl_parser = sldumpp.SLDataParser()
     ol_files = {
-        'https://openlibrary.org/data/ol_dump_latest.txt.gz' : 'open library dump/ol_dump_latest.txt.gz',
-        'https://openlibrary.org/data/ol_dump_ratings_latest.txt.gz' : 'open library dump/ol_dump_ratings_latest.txt.gz',
-        'https://openlibrary.org/data/ol_dump_reading-log_latest.txt.gz' : 'open library dump/ol_dump_reading-log_latest.txt.gz'
+        'https://openlibrary.org/data/ol_dump_latest.txt.gz' :
+            'open library dump/ol_dump_latest.txt.gz',
+        'https://openlibrary.org/data/ol_dump_ratings_latest.txt.gz' :
+            'open library dump/ol_dump_ratings_latest.txt.gz',
+        'https://openlibrary.org/data/ol_dump_reading-log_latest.txt.gz' :
+            'open library dump/ol_dump_reading-log_latest.txt.gz'
     }
     sl_files = {
-        'https://data.seattle.gov/resource/tmmm-ytt6.json?$query=SELECT%20`materialtype`,%20`checkoutyear`,%20`checkoutmonth`,%20`checkouts`,%20`title`,%20`isbn`%20WHERE%20(`isbn`%20IS%20NOT%20NULL)%20AND%20caseless_one_of(%20`materialtype`,%20%22BOOK,%20ER%22,%20%22BOOK%22,%20%22AUDIOBOOK%22,%20%22EBOOK%22%20)%20ORDER%20BY%20`title`%20DESC%20NULL%20LAST,%20`isbn`%20DESC%20NULL%20LAST%20LIMIT%202147483647'
-        : 'seattle library dump/checkouts.json'
+        'https://data.seattle.gov/resource/tmmm-ytt6.json?$query=SELECT%20\
+            `materialtype`\,%20`checkoutyear`,%20`checkoutmonth`,%20`checkouts`\
+            ,%20`title`,%20`isbn`%20WHERE%20(`isbn`%20IS%20NOT%20NULL)%20AND%20\
+            caseless_one_of(%20`materialtype`,%20%22BOOK,%20ER%22,%20%22BOOK%22,%20%22\
+            AUDIOBOOK%22,%20%22EBOOK%22%20)%20ORDER%20BY%20`title`%20DESC%20NULL%20\
+            LAST,%20`isbn`%20DESC%20NULL%20LAST%20LIMIT%202147483647' :
+                'seattle library dump/checkouts.json'
     }
     directory = r'open library dump'
 

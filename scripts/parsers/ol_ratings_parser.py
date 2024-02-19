@@ -13,9 +13,9 @@ class OLRatingsParser(OLAbstractParser):
         None
 
     Methods:
-        process_file(input_file, output_file): Process the input file and 
+        process_file(input_file, output_file): Process the input file and
             write the parsed data to the output file.
-        process_latest_file(directory): Process the latest ratings file in 
+        process_latest_file(directory): Process the latest ratings file in
             the specified directory.
         parse_line(line): Parse a single line of ratings data.
 
@@ -36,11 +36,12 @@ class OLRatingsParser(OLAbstractParser):
         """
         if not AbstractParser.is_path_valid(input_file):
             raise NotADirectoryError(input_file)
-        
-        with open(input_file, 'r', encoding='utf-8') as f_in, open(output_file, 'w', encoding='utf-8') as f_out:
+
+        with open(input_file, 'r', encoding='utf-8') as f_in, \
+            open(output_file, 'w', encoding='utf-8') as f_out:
             for line in f_in:
                 obj = self.__parse_line(line)
-                f_out.write(orjson.dumps(obj).decode('utf-8') + '\n')  # Write the JSON object followed by a newline
+                f_out.write(orjson.dumps(obj).decode('utf-8') + '\n')
         return [output_file]
 
     def process_latest_file(self, directory):

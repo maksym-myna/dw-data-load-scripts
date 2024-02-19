@@ -42,10 +42,11 @@ class OLReadingsParser(OLAbstractParser):
         if not AbstractParser.is_path_valid(input_file):
             raise NotADirectoryError(input_file)
 
-        with open(input_file, 'r', encoding='utf-8') as f_in, open(output_file, 'w', encoding='utf-8') as f_out:
+        with open(input_file, 'r', encoding='utf-8') as f_in, \
+            open(output_file, 'w', encoding='utf-8') as f_out:
             for line in f_in:
                 reading_info = self.__parse_line(line)
-                f_out.write(orjson.dumps(reading_info).decode('utf-8') + '\n')  # Write the JSON object followed by a newline
+                f_out.write(orjson.dumps(reading_info).decode('utf-8') + '\n')
         return [output_file]
 
     def process_latest_file(self, directory):

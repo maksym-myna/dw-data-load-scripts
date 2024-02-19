@@ -22,7 +22,8 @@ class SLDataParser(AbstractParser):
         if not AbstractParser.is_path_valid(input_file):
             raise NotADirectoryError(input_file)
 
-        with open(input_file, 'r', encoding='utf-8') as f_in, open(output_file, 'w', encoding='utf-8') as f_out:
+        with open(input_file, 'r', encoding='utf-8') as f_in, \
+            open(output_file, 'w', encoding='utf-8') as f_out:
             for line in f_in:
                 try:
                     line = line.replace('[', '').replace(']', '').replace(',{', '{')
