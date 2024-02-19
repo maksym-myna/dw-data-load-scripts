@@ -2,11 +2,13 @@ import orjson
 from .abstract_parser import AbstractParser
 from parsers.abstract_parser import AbstractParser
 
+
 class SLDataParser(AbstractParser):
     """
     A parser for Seattle Library data files.
 
-    This class inherits from the AbstractParser class and provides methods to process SL data files.
+    This class inherits from the AbstractParser class and provides methods to
+    process SL data files.
     """
 
     def process_file(self, input_file, output_file):
@@ -27,15 +29,15 @@ class SLDataParser(AbstractParser):
 
                     data = orjson.loads(line)
                     data = self.__parse_line(data)
-                    
-                    f_out.write(orjson.dumps(data).decode('utf-8') +'\n')
+
+                    f_out.write(orjson.dumps(data).decode('utf-8') + '\n')
                 except Exception as e:
                     print(e)
                     continue
         return [output_file]
 
-    @classmethod       
-    def __parse_line(line):
+    @classmethod
+    def __parse_line(cls, line):
         """
         Parse a line of JSON data and extract relevant information.
 
@@ -45,13 +47,12 @@ class SLDataParser(AbstractParser):
         Returns:
             dict: A dictionary containing the extracted information.
         """
-
         checkoutyear = line.get('checkoutyear', 0)
         checkoutmonth = line.get('checkoutmonth', 0)
         checkouts = line.get('checkouts', 0)
         isbns = [isbn.strip() for isbn in line.get('isbn').split(',')]
         title = line.get('title')
-        
+
         return {
             'checkout_year': checkoutyear,
             'checkout_month': checkoutmonth,

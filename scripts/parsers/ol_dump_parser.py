@@ -6,15 +6,16 @@ import html
 import os
 import re
 
-class OLDumpParser(OLAbstractParser):  
+
+class OLDumpParser(OLAbstractParser):
     """
     A class for parsing Open Library dump files.
 
     Attributes:
-        type_mapping (dict): A dictionary mapping type names to corresponding processing methods.
+        type_mapping (dict): Mapping type names to corresponding processing methods.
     """
 
-    def process_file(self, input_file, output_files):   
+    def process_file(self, input_file, output_files):
         """
         Process a dump file and write the parsed data to output files.
 
@@ -35,7 +36,7 @@ class OLDumpParser(OLAbstractParser):
                 if type_name in self.__type_mapping:
                     try:
                         json_obj = self.__type_mapping[type_name](self, obj)
-                        output_files[type_name].write(orjson.dumps(json_obj).decode('utf-8')+'\n')
+                        output_files[type_name].write(orjson.dumps(json_obj).decode('utf-8') + '\n')
                     except Exception:
                         continue
         return output_files
@@ -50,9 +51,8 @@ class OLDumpParser(OLAbstractParser):
         Returns:
             None
         """
-        
         pattern = pattern = re.compile(r'ol_dump_\d{4}-\d{2}-\d{2}.txt')
-        
+
         # Get a list of all files in the directory that match the pattern
         files = (entry for entry in os.scandir(directory) if entry.is_file() and pattern.match(entry.name))
 
@@ -80,8 +80,7 @@ class OLDumpParser(OLAbstractParser):
 
         Returns:
             dict: A dictionary containing the parsed data.
-        """
-        
+          """
         created = self.__get_created(obj)
         title = obj.get('title', '')
         subtitle = obj.get('subtitle', '')
@@ -119,14 +118,13 @@ class OLDumpParser(OLAbstractParser):
 
         Returns:
             dict: A dictionary containing the parsed data.
-        """
-        
+          """
         created = self.__get_created(obj)
         title = obj.get('title', '')
         subtitle = obj.get('subtitle', '')
         title = self.__html_escape(f'{title}: {subtitle}') if subtitle else title
         authors = [self.parse_id(author['author']['key']) for author in obj.get('authors', [])]
-        id = self.parse_id(obj.get('key', ''))  
+        id = self.parse_id(obj.get('key', ''))
         subjects = [self.__html_escape(subject) for subject in obj.get('subjects', [])]
         return {
             'title': title,
@@ -145,8 +143,7 @@ class OLDumpParser(OLAbstractParser):
 
         Returns:
             dict: A dictionary containing the parsed data.
-        """
-        
+          """
         created = self.__get_created(obj)
         id = self.parse_id(obj.get('key', ''))
         name = self.__html_escape(obj.get('name', ''))
@@ -165,8 +162,7 @@ class OLDumpParser(OLAbstractParser):
 
         Returns:
             dict: A dictionary containing the parsed data.
-        """
-        
+          """
         created = self.__get_created(obj)
         id = self.parse_id(obj.get('key', ''))
         name = obj.get('name', '')
@@ -175,9 +171,9 @@ class OLDumpParser(OLAbstractParser):
             'name': name,
             'created': created
         }
-    
+
     @classmethod
-    def __get_created(obj):
+    def __get_created(cls, obj):
         """
         Get the created timestamp from an object.
 
@@ -189,15 +185,14 @@ class OLDumpParser(OLAbstractParser):
 
         Raises:
             Exception: If no created or last_modified field is found.
-        """
-        
+          """
         created = obj.get('created', {}).get('value', '') if obj.get('created') else obj.get('last_modified', {}).get('value', '') if obj.get('last_modified') else datetime.now().isoformat()
         if not created:
             raise Exception('No created or last_modified field')
         return created
-        
+
     @classmethod
-    def __html_escape(s):
+    def __html_escape(cls, s):
         """
         Escapes HTML entities in a string.
 
@@ -208,7 +203,7 @@ class OLDumpParser(OLAbstractParser):
             str: The escaped string.
         """
         return html.unescape(s)
-    
+
     __type_mapping = {
         'edition': __process_edition,
         'work': __process_work,

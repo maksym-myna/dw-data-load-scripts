@@ -5,21 +5,21 @@ import orjson
 import glob
 import os
 
-from enum import Enum
 
 class ReadingStatus(Enum):
     """
     Enum representing the reading status of a book.
-    
+
     Attributes:
         WANT_TO_READ (str): Indicates that the book is in the "Want to Read" status.
-        CURRENTLY_READING (str): Indicates that the book is in the "Currently Reading" status.
+        CURRENTLY_READING (str): Indicates that the book has "Currently Reading" status.
         ALREADY_READ (str): Indicates that the book is in the "Already Read" status.
     """
-    
+
     WANT_TO_READ = 'Want to Read'
     CURRENTLY_READING = 'Currently Reading'
     ALREADY_READ = 'Already Read'
+
 
 class OLReadingsParser(OLAbstractParser):
     """
@@ -35,13 +35,13 @@ class OLReadingsParser(OLAbstractParser):
         Args:
             input_file (str): The path to the input file.
             output_file (str): The path to the output file.
-            
+
         Returns:
             list[str]: names of output files.
         """
         if not AbstractParser.is_path_valid(input_file):
             raise NotADirectoryError(input_file)
-        
+
         with open(input_file, 'r', encoding='utf-8') as f_in, open(output_file, 'w', encoding='utf-8') as f_out:
             for line in f_in:
                 reading_info = self.__parse_line(line)
@@ -57,7 +57,7 @@ class OLReadingsParser(OLAbstractParser):
         """
         # Get a list of all files in the directory that match the pattern
         files = glob.glob(os.path.join(directory, 'ol_dump_reading-log*.txt'))
-        
+
         files.sort(reverse=True)
         return self.process_file(files[0], rf'{directory}\data\readings.jsonl')
 
@@ -73,11 +73,11 @@ class OLReadingsParser(OLAbstractParser):
         """
         fields = line.split('\t')
         shift = 1 if len(fields) == 4 else 0
-      
+
         work = self.parse_id(fields[0])
-        reading_status = ReadingStatus(fields[1+shift]).name
-        date = fields[2+shift].strip()
-      
+        reading_status = ReadingStatus(fields[1 + shift]).name
+        date = fields[2 + shift].strip()
+
         return {
             'work': work,
             'reading_status': reading_status,

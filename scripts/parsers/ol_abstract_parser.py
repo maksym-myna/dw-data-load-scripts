@@ -1,10 +1,9 @@
-from abc import abstractmethod 
+from abc import abstractmethod
 from .abstract_parser import AbstractParser
 
+
 class OLAbstractParser(AbstractParser):
-    """
-    This is an abstract class for parsing Open Library files.
-    """
+    """This is an abstract class for parsing Open Library files."""
 
     @abstractmethod
     def process_latest_file(self, directory):
@@ -17,8 +16,8 @@ class OLAbstractParser(AbstractParser):
         Returns:
         None
         """
-    
-    def parse_id(self, key):
+    @classmethod
+    def parse_id(cls, key):
         """
         Parse the ID from the given key.
 

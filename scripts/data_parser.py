@@ -14,6 +14,7 @@ import os
 import requests
 import gzip
 
+
 def download_file(url, download_path):
     """
     Downloads a file from the given URL and saves it to the specified download path.
@@ -34,13 +35,14 @@ def download_file(url, download_path):
         raise NotADirectoryError(download_path)
 
     with open(download_path, 'wb') as f:
-        for chunk in response.iter_content(chunk_size=1024*1024): 
+        for chunk in response.iter_content(chunk_size=1024*1024):
             if chunk:  # filter out keep-alive new chunks
                 downloaded_size += len(chunk)
                 f.write(chunk)
                 print(f"Download progress: {100 * downloaded_size / total_size:.2f}%")
 
     return download_path
+
 
 def unarchive_file(archive_path, unarchive_path):
     """
@@ -57,11 +59,12 @@ def unarchive_file(archive_path, unarchive_path):
     original_file_name = os.path.splitext(os.path.basename(archive_path))[0]
     total_size = os.path.getsize(archive_path)
     unarchived_size = 0
-    
-    if not AbstractParser.is_path_valid(archive_path):
-        raise NotADirectoryError(archive_path)
 
     # Unpack the file in chunks
+
+    if not AbstractParser.is_path_valid(archive_path) or not AbstractParser.is_path_valid(unarchive_path):
+        raise NotADirectoryError(archive_path)
+    
     with gzip.open(archive_path, 'rb') as f_in, open(os.path.join(unarchive_path, original_file_name), 'wb') as f_out:
         while True:
             chunk = f_in.read(1024*1024*256)  # read 256MB at a time
@@ -72,6 +75,7 @@ def unarchive_file(archive_path, unarchive_path):
             print(f"Unarchival progress: {100 * unarchived_size / total_size:.2f}%")
 
     return unarchive_path
+
 
 def delete_file(*path):
     """
@@ -121,9 +125,9 @@ def main():
     ]
     sl_parser = sldumpp.SLDataParser()
     ol_files = {
-    'https://openlibrary.org/data/ol_dump_latest.txt.gz' : 'open library dump/ol_dump_latest.txt.gz',
-    'https://openlibrary.org/data/ol_dump_ratings_latest.txt.gz' : 'open library dump/ol_dump_ratings_latest.txt.gz',
-    'https://openlibrary.org/data/ol_dump_reading-log_latest.txt.gz' : 'open library dump/ol_dump_reading-log_latest.txt.gz'
+        'https://openlibrary.org/data/ol_dump_latest.txt.gz' : 'open library dump/ol_dump_latest.txt.gz',
+        'https://openlibrary.org/data/ol_dump_ratings_latest.txt.gz' : 'open library dump/ol_dump_ratings_latest.txt.gz',
+        'https://openlibrary.org/data/ol_dump_reading-log_latest.txt.gz' : 'open library dump/ol_dump_reading-log_latest.txt.gz'
     }
     sl_files = {
         'https://data.seattle.gov/resource/tmmm-ytt6.json?$query=SELECT%20`materialtype`,%20`checkoutyear`,%20`checkoutmonth`,%20`checkouts`,%20`title`,%20`isbn`%20WHERE%20(`isbn`%20IS%20NOT%20NULL)%20AND%20caseless_one_of(%20`materialtype`,%20%22BOOK,%20ER%22,%20%22BOOK%22,%20%22AUDIOBOOK%22,%20%22EBOOK%22%20)%20ORDER%20BY%20`title`%20DESC%20NULL%20LAST,%20`isbn`%20DESC%20NULL%20LAST%20LIMIT%202147483647'
@@ -134,10 +138,10 @@ def main():
     for url, download_path in ol_files.items():
         archive = download_file(url, download_path)
         unarchive_file(archive, 'open library dump/')
-    
+
     for url, download_path in sl_files.items():
         archive = download_file(url, download_path)
-        
+
     with concurrent.futures.ThreadPoolExecutor() as executor:
         list_of_file_lists = {executor.submit(parser.process_latest_file, directory) for parser in ol_parsers}
         list_of_file_lists.add(executor.submit(sl_parser.process_file, r'seattle library dump\checkouts.json', r'seattle library dump\data\seattle_library.json'))
