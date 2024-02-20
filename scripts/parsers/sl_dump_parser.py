@@ -11,7 +11,7 @@ class SLDataParser(AbstractParser):
     process SL data files.
     """
 
-    def process_file(self, input_file, output_file):
+    def process_file(self, input_file: str, output_file: str) -> list[str]:
         """
         Process the input file and write the modified JSON objects to the output file.
 
@@ -23,7 +23,7 @@ class SLDataParser(AbstractParser):
             raise NotADirectoryError(input_file)
 
         with open(input_file, 'r', encoding='utf-8') as f_in, \
-                open(output_file, 'w', encoding='utf-8') as f_out:
+                open(output_file, 'w', encoding='utf-8', newline='') as f_out:
             for line in f_in:
                 try:
                     line = line.replace('[', '').replace(']', '').replace(',{', '{')
@@ -31,14 +31,14 @@ class SLDataParser(AbstractParser):
                     data = orjson.loads(line)
                     data = self.__parse_line(data)
 
-                    f_out.write(orjson.dumps(data).decode('utf-8') + '\n')
+                    for row in data : 
+                        self._write_strategy(f_out, row)
                 except Exception as e:
-                    print(e)
                     continue
         return [output_file]
 
     @classmethod
-    def __parse_line(cls, line):
+    def __parse_line(cls, line: dict) -> dict:
         """
         Parse a line of JSON data and extract relevant information.
 
@@ -51,13 +51,20 @@ class SLDataParser(AbstractParser):
         checkoutyear = line.get('checkoutyear', 0)
         checkoutmonth = line.get('checkoutmonth', 0)
         checkouts = line.get('checkouts', 0)
-        isbns = [isbn.strip() for isbn in line.get('isbn').split(',')]
         title = line.get('title')
-
-        return {
-            'checkout_year': checkoutyear,
-            'checkout_month': checkoutmonth,
-            'checkouts': checkouts,
-            'isbn': isbns,
-            'title': title
-        }
+        isbns = [isbn.strip() for isbn in line.get('isbn').split(',')]
+                
+        return [
+            {
+                'checkout_year': checkoutyear,
+                'checkout_month': checkoutmonth,
+                'checkouts': checkouts,
+                'title': title,
+                'isbn': isbn
+            }
+            for isbn in isbns
+        ]
+        
+    def __init__(self, file_type) -> None:
+        super().__init__(file_type)
+                    

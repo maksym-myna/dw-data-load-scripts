@@ -6,7 +6,7 @@ class OLAbstractParser(AbstractParser):
     """This is an abstract class for parsing Open Library files."""
 
     @abstractmethod
-    def process_latest_file(self, directory):
+    def process_latest_file(self, directory: str) -> None:
         """
         Process the latest file in the specified directory.
 
@@ -16,8 +16,9 @@ class OLAbstractParser(AbstractParser):
         Returns:
         None
         """
+        
     @classmethod
-    def parse_id(cls, key):
+    def parse_id(cls, key: str) -> str:
         """
         Parse the ID from the given key.
 

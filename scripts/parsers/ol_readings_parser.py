@@ -28,7 +28,7 @@ class OLReadingsParser(OLAbstractParser):
     Inherits from OLAbstractParser.
     """
 
-    def process_file(self, input_file, output_file):
+    def process_file(self, input_file: str, output_file: str) -> list[str]:
         """
         Process the input file and write the parsed data to the output file.
 
@@ -43,13 +43,13 @@ class OLReadingsParser(OLAbstractParser):
             raise NotADirectoryError(input_file)
 
         with open(input_file, 'r', encoding='utf-8') as f_in, \
-                open(output_file, 'w', encoding='utf-8') as f_out:
+                open(output_file, 'w', encoding='utf-8', newline='') as f_out:
             for line in f_in:
                 reading_info = self.__parse_line(line)
-                f_out.write(orjson.dumps(reading_info).decode('utf-8') + '\n')
+                self._write_strategy(f_out, reading_info)
         return [output_file]
 
-    def process_latest_file(self, directory):
+    def process_latest_file(self, directory: str) -> list[str]:
         """
         Process the latest file in the specified directory.
 
@@ -60,9 +60,10 @@ class OLReadingsParser(OLAbstractParser):
         files = glob.glob(os.path.join(directory, 'ol_dump_reading-log*.txt'))
 
         files.sort(reverse=True)
-        return self.process_file(files[0], rf'{directory}\data\readings.jsonl')
 
-    def __parse_line(self, line):
+        return self.process_file(files[0], rf'{directory}\data\reading.{self.type_name}')
+
+    def __parse_line(self, line: str) -> dict:
         """
         Parse a line of data and return the parsed information as a dictionary.
 
@@ -84,3 +85,6 @@ class OLReadingsParser(OLAbstractParser):
             'reading_status': reading_status,
             'date': date
         }
+
+    def __init__(self, file_type: str) -> None:
+        super().__init__(file_type)
