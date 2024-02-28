@@ -1,7 +1,7 @@
 from parsers.ol_abstract_parser import OLAbstractParser
 from parsers.abstract_parser import AbstractParser
 from enum import Enum
-import orjson
+import itertools
 import glob
 import os
 
@@ -61,7 +61,7 @@ class OLReadingsParser(OLAbstractParser):
 
         files.sort(reverse=True)
 
-        return self.process_file(files[0], rf'{directory}\data\reading.{self.type_name}')
+        return self.process_file(files[0], rf'{directory}\data\listing.{self.type_name}')
 
     def __parse_line(self, line: str) -> dict:
         """
@@ -81,10 +81,14 @@ class OLReadingsParser(OLAbstractParser):
         date = fields[2 + shift].strip()
 
         return {
+            'listing_id': next(self.listingId),
             'work': work,
             'reading_status': reading_status,
-            'date': date
+            'date': date,
+            'reader_id': self.get_or_generate_reader().get('user_id')
         }
 
     def __init__(self, file_type: str) -> None:
         super().__init__(file_type)
+        self.listingId = itertools.count(1)
+

@@ -1,9 +1,8 @@
-import orjson
 from parsers.ol_abstract_parser import OLAbstractParser
 from parsers.abstract_parser import AbstractParser
 import os
 import glob
-
+import itertools
 
 class OLRatingsParser(OLAbstractParser):
     """
@@ -60,8 +59,7 @@ class OLRatingsParser(OLAbstractParser):
         files.sort(reverse=True)
         return self.process_file(files[0], rf'{directory}\data\rating.{self.type_name}')
 
-    @classmethod
-    def __parse_line(cls, line: str) -> dict:
+    def __parse_line(self, line: str) -> dict:
         """
         Parse a single line of ratings data.
 
@@ -77,10 +75,14 @@ class OLRatingsParser(OLAbstractParser):
         rating = fields[1 + shift]
         date = fields[2 + shift].strip()
         return {
+            "rating_id": next(self.ratingId),
             'work': work,
             'rating': rating,
-            'date': date
+            'date': date,
+            'reader_id': self.get_or_generate_reader().get('user_id')
         }
 
     def __init__(self, file_type: str) -> None:
         super().__init__(file_type)
+        self.ratingId = itertools.count(1)
+        
