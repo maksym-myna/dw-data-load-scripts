@@ -699,3 +699,6 @@ speakers = {
   "tkl": 3_700,
   "twi": 4_400_000,
 }
+"""
+  Dictionary of ISO-639-2 language codes (including synonyms) and its speakers 
+"""
