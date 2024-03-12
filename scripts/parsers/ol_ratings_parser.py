@@ -83,11 +83,11 @@ class OLRatingsParser(OLAbstractParser, FileWriter):
         
         editions = self.work_editions.get(work_id, [])
         return [{
-                "rating_id": next(self.ratingId),
-                'reader_id': self.user_manager.get_or_generate_reader(),
-                'edition_id': edition,
-                'rating': rating,
-                'date': date,
+            "rating_id": next(self.ratingId),
+            'reader_id': self.user_manager.get_or_generate_reader(),
+            'edition_id': edition,
+            'rating': rating,
+            'date': date,
         } for edition in editions]
         
     def __init__(self, file_type: str, user_manager: UserManager) -> None:

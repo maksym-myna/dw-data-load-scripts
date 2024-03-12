@@ -77,25 +77,21 @@ class OLReadingsParser(OLAbstractParser, FileWriter):
         Returns:
             dict: A dictionary containing the parsed information.
         """
-        try:
-            fields = line.split('\t')
-            shift = 1 if len(fields) == 4 else 0
+        fields = line.split('\t')
+        shift = 1 if len(fields) == 4 else 0
 
-            work_id = self.parse_id(fields[0])
-            reading_status = ReadingStatus(fields[1 + shift]).name
-            date = f"{fields[2 + shift].strip()}T{self.get_random_time()}"
+        work_id = self.parse_id(fields[0])
+        reading_status = ReadingStatus(fields[1 + shift]).name
+        date = f"{fields[2 + shift].strip()}T{self.get_random_time()}"
 
-            editions = self.work_editions.get(work_id, [])
-            return [{
-                'listing_id': next(self.listingId),
-                'reader_id': self.user_manager.get_or_generate_reader(),
-                'edition_id': edition,
-                'reading_status': reading_status,
-                'date': date,
-            } for edition in editions]
-
-        except Exception:
-            pass
+        editions = self.work_editions.get(work_id, [])
+        return [{
+            'listing_id': next(self.listingId),
+            'reader_id': self.user_manager.get_or_generate_reader(),
+            'edition_id': edition,
+            'reading_status': reading_status,
+            'date': date,
+        } for edition in editions]
     
     def __init__(self, file_type: str, user_manager: UserManager) -> None:
         """

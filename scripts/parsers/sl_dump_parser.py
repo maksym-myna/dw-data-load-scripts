@@ -76,7 +76,7 @@ class SLDataParser(AbstractParser, FileWriter):
         })
         
         self.items_maxxing[isbn] = {
-                "qty": max(self.items_maxxing.get(isbn, 0), checkouts) if material_type == 'BOOK' else 1,
+                "qty": max(self.items_maxxing.get(isbn, {"qty" : 0}).get("qty", 0), checkouts) if material_type == 'BOOK' else 1,
                 "material_type": material_type
             }
 

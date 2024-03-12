@@ -57,7 +57,7 @@ class OLDumpParser(OLAbstractParser, FileWriter):
             'language',
             "publisher",
             'edition',
-            'edition_isbn'
+            'edition_isbn',
             'edition_language',
             'edition_weight',
             'author',
