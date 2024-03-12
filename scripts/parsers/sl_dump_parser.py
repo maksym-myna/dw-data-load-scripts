@@ -65,8 +65,8 @@ class SLDataParser(AbstractParser, FileWriter):
         material_type = line.get('materialtype', None)
 
         split_isbns = [isbn.strip(" '") for isbn in line.get('isbn').split(',')]
-        isbn = list(filter(lambda isbn: isbn, split_isbns))[0]        
-        isbn = self.isbn10_to_isbn13(isbn) if len(isbn) == 10 else isbn
+        isbns = self.convert_to_isbn13(split_isbns)
+        isbn = list(filter(lambda isbn: isbn, isbns))[0]
         
         self.loans.append({
             "checkout_year" : checkoutyear,
@@ -81,6 +81,14 @@ class SLDataParser(AbstractParser, FileWriter):
             }
 
     def process_data(self, item_out: TextIOWrapper, loan_out: TextIOWrapper, return_out: TextIOWrapper):
+        """
+        Process data to generate items, loans, and loan returns.
+
+        Args:
+            item_out (TextIOWrapper): Output file for items.
+            loan_out (TextIOWrapper): Output file for loans.
+            return_out (TextIOWrapper): Output file for loan returns.
+        """
         items_ids = {}
         for key in list(self.items_maxxing.keys()):
             item = self.items_maxxing[key]
@@ -97,11 +105,10 @@ class SLDataParser(AbstractParser, FileWriter):
                 self._write_strategy(item_out, {
                     'inventory_id': id,
                     'isbn': key,
-                    # 'condition' : random.randint(10,100),
                     'material_type' : material_type,
                     'added_at': start_datetime + timedelta(
                     days=random.randint(0, (datetime.now() - start_datetime).days))
-            })
+                })
             items_ids[key] = ids
             ids = []
             del self.items_maxxing[key]
@@ -137,10 +144,23 @@ class SLDataParser(AbstractParser, FileWriter):
                 self._write_strategy(return_out, loan_return)
                 
     def clear_up(self):
+        """
+        Clears the loans list and resets the items_maxxing dictionary.
+        """
         self.loans = []
         self.items_maxxing = {}
     
     def __init__(self, file_type: str, user_manager: UserManager) -> None:
+        """
+        Initialize the SLDumpParser object.
+
+        Args:
+            file_type (str): The type of file being parsed.
+            user_manager (UserManager): An instance of the UserManager class.
+
+        Returns:
+            None
+        """
         AbstractParser.__init__(self, user_manager)
         FileWriter.__init__(self, file_type)
                 

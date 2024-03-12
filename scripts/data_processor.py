@@ -13,7 +13,37 @@ import gzip
 from parsers.user_manager import UserManager
 
 class DataProcessor(ABC):
+    """
+    Abstract base class for data processing.
+
+    Args:
+        file_type (str): The type of file to be processed.
+
+    Attributes:
+        user_manager (UserManager): An instance of the UserManager class.
+        old_parser (OLDumpParser): An instance of the OLDumpParser class.
+        ol_parsers (list): A list of instances of the OLRatingsParser and OLReadingsParser classes.
+        sl_parser (SLDataParser): An instance of the SLDataParser class.
+        ol_files (dict): A dictionary mapping URLs to file paths for Open Library files.
+        sl_files (dict): A dictionary mapping URLs to file paths for Seattle Library files.
+
+    Methods:
+        run(cls, directory=r'open library dump'): Abstract method to run the data processing.
+        download_file(url: str, download_path: str) -> str: Downloads a file from a URL.
+        unarchive_file(archive_path: str, unarchive_path: str) -> str: Unarchives a gzip compressed file.
+        delete_file(*path: str) -> None: Deletes the specified files.
+        download_and_unarchive_datasets(cls) -> None: Downloads and unarchives the datasets.
+    """
     def __init__(self, file_type: str) -> None:
+        """
+        Initializes a DataProcessor object.
+
+        Args:
+            file_type (str): The type of file to be processed.
+
+        Returns:
+            None
+        """
         self.user_manager = UserManager(file_type)
         
         self.old_parser = oldumpp.OLDumpParser(file_type, self.user_manager)
@@ -41,6 +71,13 @@ class DataProcessor(ABC):
     
     @abstractmethod
     def run(cls, directory = r'open library dump') -> None:
+        """
+        Process the data in the specified directory.
+
+        Args:
+            directory (str): The directory containing the data to be processed.
+                Defaults to 'open library dump'.
+        """
         pass
     
     @staticmethod
@@ -121,6 +158,22 @@ class DataProcessor(ABC):
     
     @classmethod
     def download_and_unarchive_datasets(cls) -> None:
+        """
+        Downloads and unarchives datasets from the specified URLs.
+
+        This method iterates over the `ol_files` and `sl_files` dictionaries,
+        where the keys are the URLs of the datasets to be downloaded, and the
+        values are the paths where the downloaded files will be saved.
+
+        For each URL and download path, it downloads the file using the
+        `download_file` method and then unarchives it using the `unarchive_file`
+        method.
+
+        Note: The unarchived files are saved in the 'open library dump/' directory.
+
+        Returns:
+            None
+        """
         for url, download_path in cls.ol_files.items():
             archive = DataProcessor.download_file(url, download_path)
             DataProcessor.unarchive_file(archive, 'open library dump/')

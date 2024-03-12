@@ -32,7 +32,13 @@ class OLAbstractParser(AbstractParser):
         return key.split('/')[-1]
 
     @classmethod
-    def get_random_time():
+    def get_random_time(cls):
+        """
+        Provides a random time in the format HH:MM:SS.
+        
+        Returns:
+            str: A random time in the format HH:MM:SS.
+        """
         hours = str(random.randint(0, 23)).zfill(2)
         minutes = str(random.randint(0, 59)).zfill(2)
         seconds = str(random.randint(0, 59)).zfill(2)

@@ -4,7 +4,6 @@ from parsers.abstract_parser import AbstractParser
 import os
 import glob
 import itertools
-import random
 
 from parsers.user_manager import UserManager
 from parsers.file_writer import FileWriter
@@ -92,6 +91,16 @@ class OLRatingsParser(OLAbstractParser, FileWriter):
         } for edition in editions]
         
     def __init__(self, file_type: str, user_manager: UserManager) -> None:
+        """
+        Initializes an instance of the OL Ratings Parser.
+
+        Args:
+            file_type (str): The type of file being parsed.
+            user_manager (UserManager): An instance of the UserManager class.
+
+        Returns:
+            None
+        """
         OLAbstractParser.__init__(self, user_manager)
         FileWriter.__init__(self, file_type)
         self.work_editions = []

@@ -1,3 +1,4 @@
+import random
 from string import punctuation, whitespace
 from parsers.ol_abstract_parser import OLAbstractParser
 from parsers.file_writer import FileWriter
@@ -9,7 +10,6 @@ from dateutil.parser import parse as date_parser
 from concurrent.futures import ThreadPoolExecutor
 import orjson
 import html
-import pyisbn
 import itertools
 import os
 import re
@@ -19,6 +19,67 @@ class OLDumpParser(OLAbstractParser, FileWriter):
     Attributes:
     type_mapping (dict): Mapping type names to corresponding processing methods.
     """
+
+    def __init__(self, file_type: str, user_manager: UserManager) -> None:
+        """
+        Initializes an instance of the OLDumpParser class.
+
+        Args:
+            file_type (str): The type of file being parsed.
+            user_manager (UserManager): An instance of the UserManager class.
+
+        Attributes:
+            __type_mapping (dict): A dictionary mapping different types to their respective processing methods.
+            __normalized_types (list): A list of normalized types.
+            output_files (None): Placeholder for output file objects.
+            language_file (file): The file object for the language file.
+            edition_id (itertools.count): An iterator for generating unique edition IDs.
+            item_id (itertools.count): An iterator for generating unique item IDs.
+            publisher_id (itertools.count): An iterator for generating unique publisher IDs.
+            subject_id (itertools.count): An iterator for generating unique subject IDs.
+            work_authors (dict): A dictionary to store authors associated with works.
+            work_subjects (dict): A dictionary to store subjects associated with works.
+            work_editions (dict): A dictionary to store editions associated with works.
+            publishers (dict): A dictionary to store publishers.
+            subjects (dict): A dictionary to store subjects.
+        """
+        OLAbstractParser.__init__(self, user_manager)
+        FileWriter.__init__(self, file_type)
+        
+        self.__type_mapping = {
+            'edition': self.__process_edition,
+            'work': self.__process_work,
+            'author': self.__process_author,
+            'language': self.__process_language
+        }
+        
+        self.__normalized_types = [
+            'language',
+            "publisher",
+            'edition',
+            'edition_isbn'
+            'edition_language',
+            'edition_weight',
+            'author',
+            'edition_author',
+            'subject',
+            'edition_subject',
+        ]
+        
+        self.output_files = None
+        self.language_file = open(rf'open library dump\data\language.{self.type_name}', 'w', encoding='utf-8', newline='')
+
+        self.edition_id = itertools.count(1)
+        self.item_id = itertools.count(1)
+        self.publisher_id = itertools.count(1)
+        self.subject_id = itertools.count(1)
+        
+        self.work_authors = {}
+        self.work_subjects = {}
+        self.work_editions = {}
+        self.publishers = {}
+        self.subjects = {}
+        
 
     def process_file(self, input_file: str, output_file = None) -> list[str]:
         """
@@ -36,9 +97,7 @@ class OLDumpParser(OLAbstractParser, FileWriter):
 
         with open(input_file, 'r', encoding='utf-8') as f_in:
             for line in f_in:
-                obj = orjson.loads(line.split('\t')[4]
-                                #    .replace('\n',' ')
-                                   )
+                obj = orjson.loads(line.split('\t')[4])
                 
                 for key, value in obj.items():
                     if isinstance(value, str):
@@ -51,52 +110,12 @@ class OLDumpParser(OLAbstractParser, FileWriter):
                         self._write_strategy(self.output_files[type_name], json_obj)
                     except Exception as e:
                         continue
-        # try:
         with ThreadPoolExecutor(max_workers=4) as executor:
-            # Submit the tasks to the executor
             executor.submit(self.write_dictionary, self.publishers, 'publisher')
             executor.submit(self.write_dictionary, self.publishers, 'subject')
             executor.submit(self.write_work_dictionary, self.work_subjects, 'edition_subject')
             executor.submit(self.write_work_dictionary, self.work_authors, 'edition_author')  
-        # except Exception as e:
-            # print("error 3")
-            # print(e)
         return self.output_files
-
-    def write_dictionary(self, dictionary: dict, name: str) -> None:
-        # try:
-        for key, value in dictionary.items():
-        #     print({
-        #     "id" : value,
-        #     name : key
-        # })
-            self._write_strategy(self.output_files[name], {
-            "id" : value,
-            name : key
-        })
-        dictionary = []
-        # except Exception as e:
-        #     print("error 1")
-        #     print(e)
-        
-    def write_work_dictionary(self, dictionary: dict, name: str) -> None:
-        # try:
-        for key, value in dictionary.items():
-            editions = self.work_editions.get(key, [])
-            for edition in editions:
-                for author in value:
-                    self._write_strategy(self.output_files[name], {
-                    "id" : edition,
-                    name : author
-                })
-        dictionary = []
-        # except Exception as e:
-            # print("error 2")
-            # print(e)
-    
-
-    
-
 
     def process_latest_file(self, directory: str) -> list[str]:
         """
@@ -110,11 +129,9 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         """
         pattern = pattern = re.compile(r'ol_dump_\d{4}-\d{2}-\d{2}.txt')
 
-        # Get a list of all files in the directory that match the pattern
         files = (entry for entry in os.scandir(directory) if entry.is_file()
                     and pattern.match(entry.name))
 
-        # Get the latest file
         latest_file = max(files, key=lambda f: f.name)
 
         if not AbstractParser.is_path_valid(directory):
@@ -154,71 +171,43 @@ class OLDumpParser(OLAbstractParser, FileWriter):
             raise Exception('No title found')  
     
         work_id = [self.parse_id(work['key']) for work in obj.get('works', ['"key": ""'])][0]
-
-        # edition_id = self.parse_id(obj.get('key', None))
         edition_id = next(self.edition_id)
-        # if not id:
-        #     raise Exception('No id found')  
 
-        # fix: convert to one-to-many relationship, would fix nulls and multiple isbns will return  
         isbns = obj.get('isbn_13', obj.get('isbn_10', []))
-        # isbn = isbns[0]
-        validated_isbns = []
-        for isbn in isbns:
-            if len(isbn) !=13:
-                if len(isbn) < 10:
-                    isbn = ''.join(char for char in isbn if char.isdigit() or char == 'X').zfill(10)
-                isbn = pyisbn.Isbn(isbn).convert()
-            validated_isbns.append(isbn)
-        self.__print_normalized(edition_id, 'edition_isbn', validated_isbns)
-        # try:
-        #     isbn = self.isbn10_to_isbn13(isbn[0]) if isbn and len(isbn[0]) == 10 else isbn[0]
-        # except Exception:
-        #     pass
+        isbns = self.convert_to_isbn13(isbns)
+        self.__print_normalized(edition_id, 'edition_isbn', isbns)
             
         created = self.__get_created(obj)
         number_of_pages = obj.get('number_of_pages', 0)        
 
-        publish_date = obj.get('publish_date', None)
-        weight = obj.get('weight', None)
-        # series = list(map(lambda series: series.strip(punctuation+whitespace), obj.get('series', [])))
-        # serie = 'Others' if not publishers else publishers[0]
-        # self.__print_normalized(id, 'edition_series', self.add_to_dictionary_and_print(series, self.series, "series", self.seriesId))
         publishers = [self.__html_escape(publisher) for publisher in obj.get('publishers', [])]
         publisher = 'Others' if not publishers else publishers[0]
- 
-# перетворити в один до багатьох
-        # self.__print_normalized(id, 'edition_publisher', self.add_to_dictionary_and_print(publishers, self.publishers, "publisher", self.publisher_id))
+        publisher_id = self.add_to_dictionary([publisher], self.publishers, self.publisher_id).get("ids", [0])[0]
     
         languages = [self.parse_id(lang['key']) for lang in obj.get('languages', [])]
         if languages:
             self.__print_normalized(edition_id, 'edition_language', [languages[0]])
-        # self.__print_normalized(id, 'publisher', self.add_to_dictionary(publisher, self.publishers, self.publisher_id).get("items", []))
-        publisher_id = self.add_to_dictionary([publisher], self.publishers, self.publisher_id).get("ids", [0])[0]
     
-        if publish_date:
-            year = self.find_year(publish_date)
-            if year != 0:
-                self.__print_normalized(edition_id, 'edition_year', [year])
+        publish_date = obj.get('publish_date', None)
+        year = self.find_year(publish_date) if publish_date else 0
+        year = random.randint(1900, 2022) if year == 0 else year
+                
+        weight = obj.get('weight', None)
         if weight:
             kg_weight = self.find_weight_in_kg(weight)
             if kg_weight:
                 self.__print_normalized(edition_id, 'edition_weight', [kg_weight])
         
-        
         self.work_editions.setdefault(work_id, []).append(edition_id)
         
-        edition = {
+        return {
             'edition_id': edition_id,
             'publisher_id': publisher_id,
-            # 'work_id': work_id,
-            # 'work_id': work_id,
-            # 'isbn': isbn,
             'title': title,
             'number_of_pages': number_of_pages,
+            'release_year': year,
             'created': created,
         }
-        return edition
 
     def __process_work(self, obj: dict) -> dict:
         """
@@ -230,8 +219,6 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         Returns:
             dict: A dictionary containing the parsed data.
         """
-        added_at = self.__get_created(obj)
-      
         title_prefix = obj.get('title_prefix', '')
         title = obj.get('title', '')
         subtitle = obj.get('subtitle', '')
@@ -243,26 +230,13 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         id = self.parse_id(obj.get('key', None))
         
         works_authors = [self.parse_id(author['author']['key']) for author in obj.get('authors', [])]
-        # self.__print_normalized(id, 'work_author', works_authors)
         
         subject = [self.__html_escape(subject) for subject in obj.get('subjects', [])]
         works_subjects = self.add_to_dictionary(subject, self.subjects, self.subject_id).get("ids", [])
 
-        # self.__print_normalized(id, 'edition_subjects', works_subjects)
-        
         self.work_authors[id] = works_authors
         self.work_subjects[id] = works_subjects
         
-        # print(self.work_authors[id])
-        # print(self.work_authors[id])
-
-        
-        # return {
-        #      'id': id,
-        #      'title': title,
-        #      'added_at': added_at,
-        # }
-
     def __process_author(self, obj: dict) -> dict:
         """
         Process an author object and return a dictionary of parsed data.
@@ -307,7 +281,6 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         
         self._write_strategy(self.language_file, language)
         self.language_file.flush()
-        # return language
 
     @classmethod
     def __get_created(cls, obj: dict) -> str:
@@ -345,27 +318,53 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         return html.unescape(s).rstrip('\\')
     
     def __print_normalized(self, id: str, name: str, obj: list[dict]) -> None:
-        if (not obj):
-            return
-        for unit in [{ "id": id, name : unit } for unit in obj if unit]:
-            self._write_strategy(self.output_files[name], unit)
+            """
+            Prints the normalized data for a given id, name, and object.
+
+            Args:
+                id (str): The identifier for the data.
+                name (str): The name of the data.
+                obj (list[dict]): The list of dictionaries containing the data.
+
+            Returns:
+                None
+            """
+            if (not obj):
+                return
+            for unit in [{ "id": id, name : unit } for unit in obj if unit]:
+                self._write_strategy(self.output_files[name], unit)
             
     @classmethod
-    def find_year(cls, s):
-        # Get the current year
+    def find_year(cls, s: str) -> int:
+        """
+        Finds the first occurrence of a 4-digit year in a given string.
+
+        Args:
+            s (str): The input string to search for a year.
+
+        Returns:
+            int: The found year if it is less than or equal to the current year, otherwise 0.
+        """
         current_year = datetime.now().year
-        # Create a pattern for four-digit numbers
         pattern = re.compile(r'\b\d{4}\b')
-        # Search the string for four-digit numbers
         for match in pattern.finditer(s):
             year = int(match.group())
             if year <= current_year:
                 return year
-        # If no valid year was found, return 0
-        return 0       
+        return 0
         
     @classmethod
-    def find_weight_in_kg(cls, s: str):
+    def find_weight_in_kg(cls, s: str) -> float:
+        """
+        Finds the weight in kilograms from a given string.
+
+        Args:
+            s (str): The input string.
+
+        Returns:
+            float: The weight in kilograms, rounded to 2 decimal places.
+                    Returns None if the weight cannot be found.
+        """
         pattern = re.compile(r'\d+(\.\d+)?')
         result = 0
         if 'k' in s:
@@ -381,8 +380,20 @@ class OLDumpParser(OLAbstractParser, FileWriter):
             result = list(pattern.finditer(s))
             result = float(result[0].group()) / 2.205 if result else None
         return round(result, 2) if result else None
-        
+    
     def add_to_dictionary(self, l: list, dictionary: dict, itertools_id) -> None:
+        """
+        Adds items from a list to a dictionary, assigning unique IDs to each item.
+
+        Args:
+            l (list): The list of items to be added to the dictionary.
+            dictionary (dict): The dictionary to which the items will be added.
+            itertools_id: An iterator that generates unique IDs.
+
+        Returns:
+            dict: A dictionary containing the assigned IDs and the items added.
+
+        """
         ids = []
         items = []
         for item in l:
@@ -402,51 +413,42 @@ class OLDumpParser(OLAbstractParser, FileWriter):
             "ids" : ids,
             "items" : items
         }
-                        
-    def __init__(self, file_type: str, user_manager: UserManager) -> None:
-        OLAbstractParser.__init__(self, user_manager)
-        FileWriter.__init__(self, file_type)
         
-        self.__type_mapping = {
-            'edition': self.__process_edition,
-            'work': self.__process_work,
-            'author': self.__process_author,
-            'language': self.__process_language
-        }
+    def write_dictionary(self, dictionary: dict, name: str) -> None:
+        """
+        Writes the given dictionary to the output file with the specified name.
+
+        Args:
+            dictionary (dict): The dictionary to be written.
+            name (str): The name of the output file.
+
+        Returns:
+            None
+        """
+        for key, value in dictionary.items():
+            self._write_strategy(self.output_files[name], {
+            "id" : value,
+            name : key
+        })
+        dictionary = []
         
-        self.__normalized_types = [
-            'language',
-            'edition',
-            'edition_language',
-            # 'edition_publisher',
-            # 'isbn_10',
-            # 'isbn_13',
-            # 'edition_work',
-            # 'edition_series',
-            # "series",
-            'work',
-            'author',
-            # 'work_author',
-            'edition_subject',
-            'edition_author',
-            'edition_year',
-            'edition_weight',
-            "publisher",
-            'subject',
-            'edition_isbn'
-        ]
-        
-        self.output_files = None
-        self.edition_id = itertools.count(1)
-        self.item_id = itertools.count(1)
-        self.publisher_id = itertools.count(1)
-        # self.seriesId = itertools.count(1)
-        self.subject_id = itertools.count(1)
-        self.publishers = {}
-        # self.series = {}
-        self.subjects = {}
-        self.language_file = open(rf'open library dump\data\language.{self.type_name}', 'w', encoding='utf-8', newline='')
-        
-        self.work_authors = {}
-        self.work_subjects = {}
-        self.work_editions = {}
+    def write_work_dictionary(self, dictionary: dict, name: str) -> None:
+        """
+        Writes the given work dictionary to the output file.
+
+        Args:
+            dictionary (dict): The work dictionary containing work IDs as keys and authors as values.
+            name (str): The name of the output file.
+
+        Returns:
+            None
+        """
+        for key, value in dictionary.items():
+            editions = self.work_editions.get(key, [])
+            for edition in editions:
+                for author in value:
+                    self._write_strategy(self.output_files[name], {
+                    "id" : edition,
+                    name : author
+                })
+        dictionary = []

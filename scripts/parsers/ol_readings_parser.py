@@ -8,7 +8,6 @@ import glob
 import os
 
 
-
 class ReadingStatus(Enum):
     """
     Enum representing the reading status of a book.
@@ -62,7 +61,6 @@ class OLReadingsParser(OLAbstractParser, FileWriter):
         """
         self.work_editions = work_editions
 
-        # Get a list of all files in the directory that match the pattern
         files = glob.glob(os.path.join(directory, 'ol_dump_reading-log*.txt'))
 
         files.sort(reverse=True)
@@ -100,6 +98,16 @@ class OLReadingsParser(OLAbstractParser, FileWriter):
             pass
     
     def __init__(self, file_type: str, user_manager: UserManager) -> None:
+        """
+        Initializes an instance of the OLReadingsParser class.
+
+        Args:
+            file_type (str): The type of file to be parsed.
+            user_manager (UserManager): An instance of the UserManager class.
+
+        Returns:
+            None
+        """
         OLAbstractParser.__init__(self, user_manager)
         FileWriter.__init__(self, file_type)
         self.work_editions = []

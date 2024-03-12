@@ -10,44 +10,45 @@ class CSVDataprocessor(DataProcessor):
     def run(self, old_directory = r'open library dump', sld_directory = r'seattle library dump') -> None:
         # cls.download_and_unarchive_datasets()
 
-        self.old_parser.process_latest_file(old_directory)
+        files = self.old_parser.process_latest_file(old_directory)
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            list_of_file_lists = {executor.submit(parser.process_latest_file, self.old_parser.work_editions, old_directory)
-                                for parser in self.ol_parsers}
-            list_of_file_lists.add(executor.submit(self.sl_parser.process_file, rf'{sld_directory}\checkouts.json',
+            files.append({executor.submit(parser.process_latest_file, self.old_parser.work_editions, old_directory)
+                                for parser in self.ol_parsers})
+            files.append(executor.submit(self.sl_parser.process_file, rf'{sld_directory}\checkouts.json',
                                         [rf'{sld_directory}\data\loan.csv', rf'{sld_directory}\data\return.csv']))
         self.old_parser.work_editions = []
         self.user_manager.writeUsers()
+       
         return
         credentials = r'scripts\cloudsql\credentials.json'
         os.system(f'gcloud auth activate-service-account --key-file={credentials}')
 
-        old = r'open library dump'
-        sld = r'seattle library dump'
-    
-        files = [
-            # rf'{old}\data\language.csv',
-            rf'{old}\data\author.csv',
-            rf'{old}\data\edition.csv',
-            rf'{old}\data\edition_language.csv',
-            rf'{old}\data\edition_publisher.csv',
-            rf'{old}\data\isbn_10.csv',
-            rf'{old}\data\isbn_13.csv',
-            rf'{old}\data\edition_work.csv',
-            rf'{old}\data\edition_series.csv',
-            rf'{old}\data\work.csv',
-            rf'{old}\data\subject.csv',
-            rf'{old}\data\work_author.csv',
+       
+        # old = r'open library dump'
+        # sld = r'seattle library dump'
+        # files = [
+        #     # rf'{old}\data\language.csv',
+        #     rf'{old}\data\author.csv',
+        #     rf'{old}\data\edition.csv',
+        #     rf'{old}\data\edition_language.csv',
+        #     rf'{old}\data\edition_publisher.csv',
+        #     rf'{old}\data\isbn_10.csv',
+        #     rf'{old}\data\isbn_13.csv',
+        #     rf'{old}\data\edition_work.csv',
+        #     rf'{old}\data\edition_series.csv',
+        #     rf'{old}\data\work.csv',
+        #     rf'{old}\data\subject.csv',
+        #     rf'{old}\data\work_author.csv',
             
-            rf'{old}\data\user.csv',
+        #     rf'{old}\data\user.csv',
 
-            rf'{old}\data\rating.csv',
-            rf'{old}\data\listing.csv',
-            rf'{old}\data\inventory_lot.csv',
-            rf'{old}\data\author.csv',
-            rf'{sld}\data\loan.csv',
-            rf'{sld}\data\return.csv'
-        ]
+        #     rf'{old}\data\rating.csv',
+        #     rf'{old}\data\listing.csv',
+        #     rf'{old}\data\inventory_lot.csv',
+        #     rf'{old}\data\author.csv',
+        #     rf'{sld}\data\loan.csv',
+        #     rf'{sld}\data\return.csv'
+        # ]
         
         # files =[]
         # for future in concurrent.futures.as_completed(list_of_file_lists):
