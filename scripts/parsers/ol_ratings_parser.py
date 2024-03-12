@@ -1,10 +1,15 @@
+from io import TextIOWrapper
 from parsers.ol_abstract_parser import OLAbstractParser
 from parsers.abstract_parser import AbstractParser
 import os
 import glob
 import itertools
+import random
 
-class OLRatingsParser(OLAbstractParser):
+from parsers.user_manager import UserManager
+from parsers.file_writer import FileWriter
+
+class OLRatingsParser(OLAbstractParser, FileWriter):
     """
     A class for parsing Open Library ratings data.
 
@@ -40,11 +45,12 @@ class OLRatingsParser(OLAbstractParser):
         with open(input_file, 'r', encoding='utf-8') as f_in, \
                 open(output_file, 'w', encoding='utf-8', newline='') as f_out:
             for line in f_in:
-                obj = self.__parse_line(line)
-                self._write_strategy(f_out, obj)
+                rating_info = self.__parse_line(line)
+                for rating in rating_info:
+                    self._write_strategy(f_out, rating)
         return [output_file]
 
-    def process_latest_file(self, directory: str) -> list[str]:
+    def process_latest_file(self, work_editions: dict, directory: str) -> list[str]:
         """
         Process the latest ratings file in the specified directory.
 
@@ -54,6 +60,7 @@ class OLRatingsParser(OLAbstractParser):
         Returns:
             list[str]: Names of output files.
         """
+        self.work_editions = work_editions
         files = glob.glob(os.path.join(directory, 'ol_dump_ratings*.txt'))
 
         files.sort(reverse=True)
@@ -71,18 +78,22 @@ class OLRatingsParser(OLAbstractParser):
         """
         fields = line.split('\t')
         shift = 1 if len(fields) == 4 else 0
-        work = fields[0].split('/')[-1]
-        rating = fields[1 + shift]
-        date = fields[2 + shift].strip()
-        return {
-            "rating_id": next(self.ratingId),
-            'work': work,
-            'rating': rating,
-            'date': date,
-            'reader_id': self.get_or_generate_reader().get('user_id')
-        }
-
-    def __init__(self, file_type: str) -> None:
-        super().__init__(file_type)
+        work_id = fields[0].split('/')[-1]
+        rating = int(fields[1 + shift])
+        date = f"{fields[2 + shift].strip()}T{self.get_random_time()}"
+        
+        editions = self.work_editions.get(work_id, [])
+        return [{
+                "rating_id": next(self.ratingId),
+                'reader_id': self.user_manager.get_or_generate_reader(),
+                'edition_id': edition,
+                'rating': rating,
+                'date': date,
+        } for edition in editions]
+        
+    def __init__(self, file_type: str, user_manager: UserManager) -> None:
+        OLAbstractParser.__init__(self, user_manager)
+        FileWriter.__init__(self, file_type)
+        self.work_editions = []
         self.ratingId = itertools.count(1)
         

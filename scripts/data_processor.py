@@ -10,14 +10,18 @@ import os
 import requests
 import gzip
 
+from parsers.user_manager import UserManager
+
 class DataProcessor(ABC):
     def __init__(self, file_type: str) -> None:
+        self.user_manager = UserManager(file_type)
+        
+        self.old_parser = oldumpp.OLDumpParser(file_type, self.user_manager)
         self.ol_parsers = [
-            oldumpp.OLDumpParser(file_type),
-            olratesp.OLRatingsParser(file_type),
-            olreadsp.OLReadingsParser(file_type),
+            olratesp.OLRatingsParser(file_type, self.user_manager),
+            olreadsp.OLReadingsParser(file_type, self.user_manager),
         ]
-        self.sl_parser = sldumpp.SLDataParser(file_type)
+        self.sl_parser = sldumpp.SLDataParser(file_type, self.user_manager)
         self.ol_files = {
             'https://openlibrary.org/data/ol_dump_latest.txt.gz' :
                 'open library dump/ol_dump_latest.txt.gz',

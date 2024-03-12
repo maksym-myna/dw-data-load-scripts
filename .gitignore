@@ -7,3 +7,5 @@
 *.csv
 *.gz
 *.exe
+*.tmp
+*.docx

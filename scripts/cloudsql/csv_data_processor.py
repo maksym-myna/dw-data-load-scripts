@@ -10,12 +10,15 @@ class CSVDataprocessor(DataProcessor):
     def run(self, old_directory = r'open library dump', sld_directory = r'seattle library dump') -> None:
         # cls.download_and_unarchive_datasets()
 
+        self.old_parser.process_latest_file(old_directory)
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            list_of_file_lists = {executor.submit(parser.process_latest_file, old_directory)
+            list_of_file_lists = {executor.submit(parser.process_latest_file, self.old_parser.work_editions, old_directory)
                                 for parser in self.ol_parsers}
-            list_of_file_lists.add(executor.submit(self.sl_parser.process_file,
-                                rf'{sld_directory}\checkouts.json',
+            list_of_file_lists.add(executor.submit(self.sl_parser.process_file, rf'{sld_directory}\checkouts.json',
                                         [rf'{sld_directory}\data\loan.csv', rf'{sld_directory}\data\return.csv']))
+        self.old_parser.work_editions = []
+        self.user_manager.writeUsers()
+        return
         credentials = r'scripts\cloudsql\credentials.json'
         os.system(f'gcloud auth activate-service-account --key-file={credentials}')
 

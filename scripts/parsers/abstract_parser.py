@@ -1,25 +1,15 @@
 from abc import ABC, abstractmethod
-import orjson
-import random
-import itertools
-import names
-import csv
 import os
+
+from parsers.user_manager import UserManager
 
 
 class AbstractParser(ABC):
     """Abstract base class for parsers."""
 
-    def __init__(self, file_type: str):
-        self._write_strategy = self._write_jsonl if file_type == 'jsonl' else self._write_csv
-        self.type_name = file_type
-        self.users = []
-        self.usersId = itertools.count(1)
-        self.default_pfp = {
-            "pfp_id": 1,
-            "url": 'https://storage.cloud.google.com/data_warehousing_library_data/default-pfp.svg'
-        }
-
+    def __init__(self, user_manager: UserManager) -> None:
+        self.user_manager = user_manager
+    
     @abstractmethod
     def process_file(self, input_file: str, output: str) -> str:
         """
@@ -29,32 +19,7 @@ class AbstractParser(ABC):
             input_file: The input file path.
             output: The output file path.
         """
-        
-    def get_or_generate_reader(self) -> dict:
-        if not self.users or random.random() < 20000/len(self.users)/random.randint(1,500):
-            name = names.get_full_name()
-            email = f'{name.replace(" ", "_")}@knyhozbirnia.com'
-            newUser = {
-                    "user_id": next(self.usersId),
-                    "name": name,
-                    "email": email,
-                    "pfp_id": 1
-                }
-            self.users.append(newUser)
-            return newUser
-        else:
-            return random.choice(self.users)
-
-    @classmethod
-    def _write_jsonl(cls, file: str, obj: dict)-> None:
-        file.write(orjson.dumps(obj).decode('utf-8') + '\n')
-
-    @classmethod
-    def _write_csv(cls, file: str, obj: dict) -> None:
-        # obj = {k: v.encode('unicode_escape').decode() if isinstance(v, str) else v for k, v in obj.items()}
-        writer = csv.DictWriter(file, fieldnames=obj.keys(), quoting=csv.QUOTE_ALL)
-        writer.writerow(obj)
-        
+            
     @staticmethod
     def is_path_valid(path: str) -> bool:
         """
@@ -67,3 +32,66 @@ class AbstractParser(ABC):
             bool: True if the path is valid, False otherwise.
         """
         return os.path.abspath('.') in os.path.abspath(path)
+    
+    # def writeUser(self, user: dict):
+    #     self._write_strategy(self.users_file, user)
+                
+    
+    # @classmethod
+    # def isbn10_to_isbn13(cls, isbn10: str) -> str:
+    #     """
+    #     Convert an ISBN-10 to an ISBN-13.
+
+    #     Args:
+    #         isbn10 (str): The ISBN-10 to be converted.
+
+    #     Returns:
+    #         str: The converted ISBN-13.
+    #     """
+    #     if len(isbn10) != 10:
+    #         if len(isbn10) < 10:
+    #             isbn10 = isbn10.zfill(10)
+    #         else:
+    #             raise ValueError(f'Invalid ISBN-10: {isbn10}')
+        
+    #     isbn13 = '978' + isbn10[:-1]
+        
+    #     check_digit = 0
+    #     for i, digit in enumerate(isbn13):
+    #         check_digit += int(digit) * (3 if i % 2 else 1)
+    #     check_digit = (10 - (check_digit % 10)) % 10
+        
+    #     return isbn13 + str(check_digit)
+    
+    
+    # @classmethod
+    # def check_digit_10(cls, isbn):
+    #     assert len(isbn) == 9
+    #     sum = 0
+    #     for i in range(len(isbn)):
+    #         c = int(isbn[i])
+    #         w = i + 1
+    #         sum += w * c
+    #     r = sum % 11
+    #     if r == 10: return 'X'
+    #     else: return str(r)
+
+    # @classmethod
+    # def check_digit_13(cls, isbn):
+    #     assert len(isbn) == 12
+    #     sum = 0
+    #     for i in range(len(isbn)):
+    #         c = int(isbn[i])
+    #         if i % 2: w = 3
+    #         else: w = 1
+    #         sum += w * c
+    #     r = 10 - (sum % 10)
+    #     if r == 10: return '0'
+    #     else: return str(r)
+
+    # @classmethod
+    # def convert_10_to_13(cls, isbn):
+    #     assert len(isbn) == 10
+    #     prefix = '978' + isbn[:-1]
+    #     check = cls.check_digit_13(prefix)
+    #     return prefix + check
