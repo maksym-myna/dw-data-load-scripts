@@ -1,6 +1,6 @@
 import concurrent.futures
 
-import gdrive.auth as auth
+import gdrive.auth as gauth
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
@@ -12,9 +12,9 @@ class JSONLDataProcessor(DataProcessor):
 
     def run(self, directory = r'open library dump') -> None:
         """Main function to process files and upload to Google Drive."""
-        # auth = gauth.GDriveAuth()
-        
-        # cls.download_and_unarchive_datasets()
+        auth = gauth.GDriveAuth()
+
+        self.download_and_unarchive_datasets()
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             list_of_file_lists = {executor.submit(parser.process_latest_file, directory)
@@ -31,7 +31,7 @@ class JSONLDataProcessor(DataProcessor):
                     DataProcessor.delete_file(*files)
                 except Exception:
                     return
-                    
+
     @staticmethod
     def upload_to_drive(service, files: list[str]) -> None:
         """Upload files to Google Drive and handle revisions."""

@@ -10,7 +10,7 @@ class AbstractParser(ABC):
 
     def __init__(self, user_manager: UserManager) -> None:
         self.user_manager = user_manager
-    
+
     @abstractmethod
     def process_file(self, input_file: str, output: str) -> str:
         """
@@ -20,7 +20,7 @@ class AbstractParser(ABC):
             input_file: The input file path.
             output: The output file path.
         """
-            
+
     @staticmethod
     def is_path_valid(path: str) -> bool:
         """
@@ -47,9 +47,15 @@ class AbstractParser(ABC):
         """
         validated_isbns = []
         for isbn in isbns:
-            if len(isbn) !=13:
-                if len(isbn) < 10:
-                    isbn = ''.join(char for char in isbn if char.isdigit() or char == 'X').zfill(10)
-                isbn = pyisbn.Isbn(isbn).convert()
+            if len(isbn) != 13:
+                isbn = ''.join(char for char in isbn if char.isdigit() or char == 'X').zfill(10)
+                if len(isbn) == 10:
+                    isbn = pyisbn.Isbn(isbn).convert()
+                else:
+                    continue
             validated_isbns.append(isbn)
         return validated_isbns
+
+    @classmethod
+    def _capitalize_first(cls, s: str) -> str:
+        return s[:1].upper() + s[1:]

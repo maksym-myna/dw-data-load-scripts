@@ -491,7 +491,7 @@ speakers = {
   "dua": 87_700,
   "gil": 120_000,
   "cmc": 4_000_000,
-  "oto": 500_000,  
+  "oto": 500_000,
   "xal": 478_000,
   "dak": 290,
   "new": 1_300_000,
@@ -580,7 +580,7 @@ speakers = {
   "bal": 8_800_000,
   "gua": 6_500_000,
   "apa": 100,
-  "srd": 1_000_000,  
+  "srd": 1_000_000,
   "chy": 380,
   "mon": 265_895,
   "bua": 440_000,
@@ -700,5 +700,5 @@ speakers = {
   "twi": 4_400_000,
 }
 """
-  Dictionary of ISO-639-2 language codes (including synonyms) and its speakers 
+  Dictionary of ISO-639-2 language codes (including synonyms) and its speakers
 """

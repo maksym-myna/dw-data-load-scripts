@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import sqlite3
 
 from parsers.abstract_parser import AbstractParser
 import parsers.ol_readings_parser as olreadsp
@@ -22,7 +23,7 @@ class DataProcessor(ABC):
     Attributes:
         user_manager (UserManager): An instance of the UserManager class.
         old_parser (OLDumpParser): An instance of the OLDumpParser class.
-        ol_parsers (list): A list of instances of the OLRatingsParser and OLReadingsParser classes.
+        ol_parsers (list[AbstractParser]): A list of instances of the OLRatingsParser and OLReadingsParser classes.
         sl_parser (SLDataParser): An instance of the SLDataParser class.
         ol_files (dict): A dictionary mapping URLs to file paths for Open Library files.
         sl_files (dict): A dictionary mapping URLs to file paths for Seattle Library files.
@@ -44,14 +45,16 @@ class DataProcessor(ABC):
         Returns:
             None
         """
+        self.conn = sqlite3.connect('temp.db')
+        self.type_name = file_type
         self.user_manager = UserManager(file_type)
-        
-        self.old_parser = oldumpp.OLDumpParser(file_type, self.user_manager)
+
+        self.old_parser = oldumpp.OLDumpParser(self.conn, file_type, self.user_manager)
         self.ol_parsers = [
             olratesp.OLRatingsParser(file_type, self.user_manager),
             olreadsp.OLReadingsParser(file_type, self.user_manager),
         ]
-        self.sl_parser = sldumpp.SLDataParser(file_type, self.user_manager)
+        self.sl_parser = sldumpp.SLDataParser(self.conn, file_type, self.user_manager)
         self.ol_files = {
             'https://openlibrary.org/data/ol_dump_latest.txt.gz' :
                 'open library dump/ol_dump_latest.txt.gz',
@@ -68,7 +71,17 @@ class DataProcessor(ABC):
             '%22EBOOK%22%20)ORDER%20BY%20`title`%20DESC%20NULL%20LAST,%20`isbn`%20DESC'
             '%20NULL%20LAST%20LIMIT%202147483647' : 'seattle library dump/checkouts.json'
         }
-    
+
+    def __del__(self) -> None:
+        """
+        Closes the connection to the database.
+
+        Returns:
+            None
+        """
+        self.conn.close()
+        os.remove('temp.db')
+
     @abstractmethod
     def run(cls, directory = r'open library dump') -> None:
         """
@@ -79,7 +92,7 @@ class DataProcessor(ABC):
                 Defaults to 'open library dump'.
         """
         pass
-    
+
     @staticmethod
     def download_file(url: str, download_path: str) -> str:
         """
@@ -155,7 +168,7 @@ class DataProcessor(ABC):
         """
         for file in path:
             os.remove(file)
-    
+
     @classmethod
     def download_and_unarchive_datasets(cls) -> None:
         """

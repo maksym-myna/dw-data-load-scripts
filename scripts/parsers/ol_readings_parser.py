@@ -29,6 +29,22 @@ class OLReadingsParser(OLAbstractParser, FileWriter):
 
     Inherits from OLAbstractParser.
     """
+    def __init__(self, file_type: str, user_manager: UserManager) -> None:
+        """
+        Initializes an instance of the OLReadingsParser class.
+
+        Args:
+            file_type (str): The type of file to be parsed.
+            user_manager (UserManager): An instance of the UserManager class.
+
+        Returns:
+            None
+        """
+        OLAbstractParser.__init__(self, user_manager)
+        FileWriter.__init__(self, file_type)
+        
+        self.listingId = itertools.count(1)
+        self.work_ids = None
 
     def process_file(self, input_file: str, output_file: str) -> list[str]:
         """
@@ -47,20 +63,20 @@ class OLReadingsParser(OLAbstractParser, FileWriter):
         with open(input_file, 'r', encoding='utf-8') as f_in, \
                 open(output_file, 'w', encoding='utf-8', newline='') as f_out:
             for line in f_in:
-                reading_info = self.__parse_line(line)
-                for reading in reading_info:
-                    self._write_strategy(f_out, reading)
+                if result := self.__parse_line(line): 
+                    self._write_strategy(f_out, result)
+
         return [output_file]
 
-    def process_latest_file(self, work_editions: dict, directory: str) -> list[str]:
+    def process_latest_file(self, work_ids: dict[str, int], directory: str) -> list[str]:
         """
         Process the latest file in the specified directory.
 
         Args:
             directory (str): The path to the directory containing the files.
         """
-        self.work_editions = work_editions
-
+        self.work_ids = work_ids
+        
         files = glob.glob(os.path.join(directory, 'ol_dump_reading-log*.txt'))
 
         files.sort(reverse=True)
@@ -81,32 +97,16 @@ class OLReadingsParser(OLAbstractParser, FileWriter):
         shift = 1 if len(fields) == 4 else 0
 
         work_id = self.parse_id(fields[0])
+        if not (work_id := self.work_ids.get(work_id, None)):
+            return None
+
         reading_status = ReadingStatus(fields[1 + shift]).name
         date = f"{fields[2 + shift].strip()}T{self.get_random_time()}"
 
-        editions = self.work_editions.get(work_id, [])
-        return [{
+        return {
             'listing_id': next(self.listingId),
             'reader_id': self.user_manager.get_or_generate_reader(),
-            'edition_id': edition,
+            'work_id': work_id,
             'reading_status': reading_status,
             'date': date,
-        } for edition in editions]
-    
-    def __init__(self, file_type: str, user_manager: UserManager) -> None:
-        """
-        Initializes an instance of the OLReadingsParser class.
-
-        Args:
-            file_type (str): The type of file to be parsed.
-            user_manager (UserManager): An instance of the UserManager class.
-
-        Returns:
-            None
-        """
-        OLAbstractParser.__init__(self, user_manager)
-        FileWriter.__init__(self, file_type)
-        self.work_editions = []
-
-        self.listingId = itertools.count(1)
-
+        }

@@ -2,7 +2,7 @@ import itertools
 import random
 import names
 from datetime import datetime, timedelta
-from parsers.file_writer import FileWriter 
+from parsers.file_writer import FileWriter
 
 class UserManager(FileWriter):
     def __init__(self, file_type: str):
@@ -19,7 +19,7 @@ class UserManager(FileWriter):
             user_file (file): A file object to write user data.
         """
         FileWriter.__init__(self, file_type)
-        
+
         self.users = []
         self.usersId = itertools.count(1)
         self.default_pfp = {
@@ -27,8 +27,8 @@ class UserManager(FileWriter):
             "url": 'https://storage.cloud.google.com/data_warehousing_library_data/default-pfp.svg',
             "added_at": datetime.now().isoformat()
         }
-        
-        self.user_file = open(rf'open library dump\data\user.{file_type}', 'w', encoding='utf-8', newline='')
+
+        self.user_file = None
 
     def get_or_generate_reader(self) -> dict:
         """
@@ -42,7 +42,7 @@ class UserManager(FileWriter):
             self.users.append(id)
             return id
         return random.choice(self.users)
-        
+
     def fill_user(self, user_id) -> None:
         """
         Fills the user details with random data.
@@ -64,7 +64,7 @@ class UserManager(FileWriter):
         first_name = names.get_first_name(gender)
         last_name = names.get_first_name(gender)
         email = f'{first_name}_{last_name}@knyhozbirnia.com'
-        
+
         return {
             "user_id": user_id,
             "first_name": first_name,
@@ -102,8 +102,10 @@ class UserManager(FileWriter):
         Returns:
             None
         """
+        if not self.user_file:
+            self.user_file = open(self.get_user_file(), 'w', encoding='utf-8', newline='')
         self._write_strategy(self.user_file, self.fill_user(user))
-        
+
     def writeUsers(self):
         """
         Writes the users to the user file using the specified write strategy.
@@ -117,9 +119,10 @@ class UserManager(FileWriter):
         Returns:
             None
         """
+        self.user_file = open(self.get_user_file(), 'w', encoding='utf-8', newline='')
         for user in self.users:
             self._write_strategy(self.user_file, self.fill_user(user))
-    
+
     def writePfp(self):
         """
         Writes the default profile picture (pfp) to a file.
@@ -132,5 +135,29 @@ class UserManager(FileWriter):
         Returns:
             None
         """
-        with open(rf'open library dump\data\pfp.{self.type_name}', 'w', encoding='utf-8', newline='') as f_in:
+        with open(self.get_pfp_file(), 'w', encoding='utf-8', newline='') as f_in:
             self._write_strategy(f_in, self.default_pfp)
+
+    def get_user_file(self):
+        """
+        Returns the path to the user file.
+
+        Args:
+            None
+
+        Returns:
+            str: The path to the user file.
+        """
+        return rf'open library dump\data\library_user.{self.type_name}'
+
+    def get_pfp_file(self):
+        """
+        Returns the path to the pfp file.
+
+        Args:
+            None
+
+        Returns:
+            str: The path to the pfp file.
+        """
+        return rf'open library dump\data\pfp.{self.type_name}'

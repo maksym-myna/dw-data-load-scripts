@@ -17,7 +17,7 @@ class OLAbstractParser(AbstractParser):
         Returns:
         None
         """
-        
+
     @classmethod
     def parse_id(cls, key: str) -> str:
         """
@@ -35,7 +35,7 @@ class OLAbstractParser(AbstractParser):
     def get_random_time(cls):
         """
         Provides a random time in the format HH:MM:SS.
-        
+
         Returns:
             str: A random time in the format HH:MM:SS.
         """
