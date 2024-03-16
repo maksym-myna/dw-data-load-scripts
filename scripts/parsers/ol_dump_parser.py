@@ -627,12 +627,10 @@ class OLDumpParser(OLAbstractParser, FileWriter):
                 subject
             ON
                 work_subject.subject_name = subject.subject_name
-            JOIN
-                work_isbn
-            on
-                work_isbn.work_id = work_subject.work_id
             WHERE
                 work_subject.subject_name IN frequent_subject
+            AND
+                work_subject.work_id IN (SELECT work_id FROM work_isbn)
         """
         )
         self._sqlite_write_strategy(
