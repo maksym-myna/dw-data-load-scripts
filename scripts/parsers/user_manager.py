@@ -4,6 +4,7 @@ import names
 from datetime import datetime, timedelta
 from parsers.file_writer import FileWriter
 
+
 class UserManager(FileWriter):
     def __init__(self, file_type: str):
         """
@@ -23,9 +24,10 @@ class UserManager(FileWriter):
         self.users = []
         self.usersId = itertools.count(1)
         self.default_pfp = {
-            "pfp_id": 1,
-            "url": 'https://storage.cloud.google.com/data_warehousing_library_data/default-pfp.svg',
-            "added_at": datetime.now().isoformat()
+            # "pfp_id": 1,
+            "user_id": 0,
+            "url": "https://storage.cloud.google.com/data_warehousing_library_data/default-pfp.svg",
+            # "added_at": datetime.now().isoformat(),
         }
 
         self.user_file = None
@@ -37,8 +39,11 @@ class UserManager(FileWriter):
         Returns:
             dict: The user ID.
         """
-        if not self.users or random.random() < 20000/len(self.users)/random.randint(1,500):
-            id = next(self.usersId)
+        if not self.users or random.random() < 20000 / len(self.users) / random.randint(
+            1, 500
+        ):
+            if not (id := next(self.usersId)):
+                return None
             self.users.append(id)
             return id
         return random.choice(self.users)
@@ -60,10 +65,10 @@ class UserManager(FileWriter):
             - birthday: The birthday of the user.
             - added_at: The timestamp when the user was added.
         """
-        gender = random.choice(['male', 'female', 'non-binary'])
+        gender = random.choice(["male", "female", "non-binary"])
         first_name = names.get_first_name(gender)
         last_name = names.get_first_name(gender)
-        email = f'{first_name}_{last_name}@knyhozbirnia.com'
+        email = f"{first_name}_{last_name}@knyhozbirnia.com"
 
         return {
             "user_id": user_id,
@@ -75,8 +80,8 @@ class UserManager(FileWriter):
             "added_at": datetime.now().isoformat(),
         }
 
-    @classmethod
-    def _random_birthday(cls, start_year=1950, end_year=datetime.now().year):
+    @staticmethod
+    def _random_birthday(start_year=1950, end_year=datetime.now().year):
         """
         Generate a random birthday between the specified start_year and end_year.
 
@@ -103,7 +108,9 @@ class UserManager(FileWriter):
             None
         """
         if not self.user_file:
-            self.user_file = open(self.get_user_file(), 'w', encoding='utf-8', newline='')
+            self.user_file = open(
+                self.get_user_file(), "w", encoding="utf-8", newline=""
+            )
         self._write_strategy(self.user_file, self.fill_user(user))
 
     def writeUsers(self):
@@ -119,7 +126,7 @@ class UserManager(FileWriter):
         Returns:
             None
         """
-        self.user_file = open(self.get_user_file(), 'w', encoding='utf-8', newline='')
+        self.user_file = open(self.get_user_file(), "w", encoding="utf-8", newline="")
         for user in self.users:
             self._write_strategy(self.user_file, self.fill_user(user))
 
@@ -135,7 +142,7 @@ class UserManager(FileWriter):
         Returns:
             None
         """
-        with open(self.get_pfp_file(), 'w', encoding='utf-8', newline='') as f_in:
+        with open(self.get_pfp_file(), "w", encoding="utf-8", newline="") as f_in:
             self._write_strategy(f_in, self.default_pfp)
 
     def get_user_file(self):
@@ -148,7 +155,7 @@ class UserManager(FileWriter):
         Returns:
             str: The path to the user file.
         """
-        return rf'open library dump\data\library_user.{self.type_name}'
+        return rf"open library dump\data\library_user.{self.type_name}"
 
     def get_pfp_file(self):
         """
@@ -160,4 +167,4 @@ class UserManager(FileWriter):
         Returns:
             str: The path to the pfp file.
         """
-        return rf'open library dump\data\pfp.{self.type_name}'
+        return rf"open library dump\data\pfp.{self.type_name}"

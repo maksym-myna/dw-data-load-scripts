@@ -14,15 +14,18 @@ import os
 import re
 import sqlite3
 
+
 class OLDumpParser(OLAbstractParser, FileWriter):
-    """ 
+    """
     A class for parsing Open Library dump files.
-    
+
     Attributes:
         type_mapping (dict): Mapping type names to corresponding processing methods.
     """
 
-    def __init__(self, conn: sqlite3.Connection, file_type: str, user_manager: UserManager) -> None:
+    def __init__(
+        self, conn: sqlite3.Connection, file_type: str, user_manager: UserManager
+    ) -> None:
         """
         Initializes an instance of the OLDumpParser class.
 
@@ -40,28 +43,28 @@ class OLDumpParser(OLAbstractParser, FileWriter):
             publishers (dict): A dictionary to store publishers.
             subjects (dict): A dictionary to store subjects.
         """
-        OLAbstractParser.__init__(self, user_manager)
+        OLAbstractParser.__init__(self, user_manager, conn)
         FileWriter.__init__(self, file_type)
 
         self.__type_mapping = {
-            'edition': self.__process_edition,
-            'work': self.__process_work,
-            'author': self.__process_author,
-            'language': self.__process_language,
-            'subject': self.__process_subject,
+            "edition": self.__process_edition,
+            "work": self.__process_work,
+            "author": self.__process_author,
+            "language": self.__process_language,
+            "subject": self.__process_subject,
         }
 
         self.__normalized_types = [
-            'lang',
-            'publisher',
-            'work',
-            'work_isbn',
-            'work_language',
-            'work_weight',
-            'author',
-            'work_author',
-            'subject',
-            'work_subject',
+            "lang",
+            "publisher",
+            "work",
+            "work_isbn",
+            "work_language",
+            "work_weight",
+            "author",
+            "work_author",
+            "subject",
+            "work_subject",
         ]
 
         self.__output_files = None
@@ -75,12 +78,12 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         self.__author_ids = {}
         self.__work_authors = {}
         self.work_ids = {}
-        
-        self.conn = conn
-        self.cursor = self.conn.cursor()
-        self.__create_db_schema()
 
-    def process_file(self, input_file: str, output_file = None) -> list[str]:
+        self.cursor.executescript(
+            open("scripts/sql/sqlite_schema.sql", "r", encoding="utf-8").read()
+        )
+
+    def process_file(self, input_file: str, output_file=None) -> list[str]:
         """
         Process a dump file and write the parsed data to output files.
 
@@ -94,23 +97,30 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         if not AbstractParser.is_path_valid(input_file):
             raise NotADirectoryError(input_file)
 
-        self.__language_file = open(rf'open library dump\data\lang.{self.type_name}', 'w', encoding='utf-8', newline='')
+        self.__language_file = open(
+            rf"open library dump\data\lang.{self.type_name}",
+            "w",
+            encoding="utf-8",
+            newline="",
+        )
 
-        with open(input_file, 'r', encoding='utf-8') as f_in:
+        with open(input_file, "r", encoding="utf-8") as f_in:
             for line in f_in:
-                obj = orjson.loads(line.split('\t')[4])
+                obj = orjson.loads(line.split("\t")[4])
 
                 for key, value in obj.items():
                     if isinstance(value, str):
-                        obj[key] = value.replace('\n', ' ').replace('\r', ' ')
+                        obj[key] = value.replace("\n", " ").replace("\r", " ")
 
-                if (row_title := self.parse_id(obj.get('type')['key'])) in self.__type_mapping:
+                if (
+                    row_title := self.parse_id(obj.get("type")["key"])
+                ) in self.__type_mapping:
                     try:
-                        if func:=self.__type_mapping.get(row_title, None):
-                            func(obj)
+                        if func := self.__type_mapping.get(row_title, None):
+                            func(obj)  # @IgnoreException
                     except Exception:
                         continue
-                    
+
         return self.__output_files
 
     def process_latest_file(self, directory: str) -> list[str]:
@@ -123,33 +133,44 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         Returns:
             None
         """
-        pattern = pattern = re.compile(r'ol_dump_\d{4}-\d{2}-\d{2}.txt')
+        pattern = pattern = re.compile(r"ol_dump_\d{4}-\d{2}-\d{2}.txt")
 
-        files = (entry for entry in os.scandir(directory) if entry.is_file()
-                    and pattern.match(entry.name))
+        files = (
+            entry
+            for entry in os.scandir(directory)
+            if entry.is_file() and pattern.match(entry.name)
+        )
 
         latest_file = max(files, key=lambda f: f.name)
 
         if not AbstractParser.is_path_valid(directory):
             raise NotADirectoryError(directory)
 
-        self.__output_files = {type_name: open(os.path.join(directory,
-                            rf'data\{type_name}.{self.type_name}'), 'w', encoding='utf-8', newline='')
-                                    for type_name in self.__normalized_types}
+        self.__output_files = {
+            type_name: open(
+                os.path.join(directory, rf"data\{type_name}.{self.type_name}"),
+                "w",
+                encoding="utf-8",
+                newline="",
+            )
+            for type_name in self.__normalized_types
+        }
         self.__output_files = self.process_file(latest_file.path)
 
         self.user_manager.writePfp()
         self.__write_subjects()
-        self.__write_dictionary(self.__publishers, 'publisher')
-        self.__write_work_authors(self.__work_authors, 'work_author')
+        self.__write_dictionary(self.__publishers, "publisher")
+        self.__write_work_authors()
 
         for f_out in self.__output_files.values():
             f_out.close()
-            
+
         self.conn.commit()
         self.cursor.close()
-        return [self.user_manager.get_user_file(), self.user_manager.get_pfp_file()] + [rf'open library dump\data\{type_name}.{self.type_name}'
-                for type_name in self.__normalized_types]
+        return [self.user_manager.get_user_file(), self.user_manager.get_pfp_file()] + [
+            rf"open library dump\data\{type_name}.{self.type_name}"
+            for type_name in self.__normalized_types
+        ]
 
     def __process_edition(self, obj: dict) -> dict:
         """
@@ -161,51 +182,73 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         Returns:
             dict: A dictionary containing the parsed data.
         """
-        old_id = [self.parse_id(work['key']) for work in obj.get('works', [{"key": ""}])][0]
-        work_id = self.__get_new_id(old_id, self.work_ids, self.__work_id)
-        
-        if not (title := self.__build_title(obj)) or not (created := self.__get_created(obj)):
+        if not (title := self.__build_title(obj)) or not (
+            created := self.__get_created(obj)
+        ):
             return
 
-        isbns = obj.get('isbn_13', obj.get('isbn_10', []))
-        isbns = self.convert_to_isbn13(isbns)
+        old_id = [
+            self.parse_id(work["key"]) for work in obj.get("works", [{"key": ""}])
+        ][0]
+        work_id = self.__get_new_id(old_id, self.work_ids, self.__work_id)
 
-        self.cursor.execute('SELECT * FROM work_isbn WHERE work_id = ?', (work_id,))
+        isbns = obj.get("isbn_13", obj.get("isbn_10", []))
+        isbns = self.convert_to_isbn13(isbns)  # @IgnoreException
+
+        self.cursor.execute(
+            "SELECT * FROM work_isbn WHERE work_id = ? LIMIT 1", (work_id,)
+        )
         unique_flag = False
         if not self.cursor.fetchone() and isbns:
-            self.__print_normalized(work_id, 'work_isbn', [isbns[0]])
+            self.__print_normalized(work_id, "work_isbn", [isbns[0]])
             unique_flag = True
-        self.cursor.executemany('INSERT OR IGNORE INTO work_isbn VALUES (?, ?)', [(work_id, isbn) for isbn in isbns])
+        self.cursor.executemany(
+            "INSERT OR IGNORE INTO work_isbn VALUES (?, ?)",
+            [(work_id, isbn) for isbn in isbns],
+        )
 
         if not unique_flag:
             return
 
-        number_of_pages = abs(obj.get('number_of_pages', 0))
+        number_of_pages = abs(obj.get("number_of_pages", 0))
 
-        publisher = 'Other' if not (publishers := [self.__html_escape(p) for p in obj.get('publishers', [])]) else self._capitalize_first(publishers[0])
-        if not (publisher_id := self.__publishers.get(publisher, None)):
-            publisher_id = next(self.__publisher_id)
+        publisher = (
+            "Other"
+            if not (
+                publishers := [self.__html_escape(p) for p in obj.get("publishers", [])]
+            )
+            else self._capitalize_first(publishers[0])
+        )
+        if not (publisher_id := self.__publishers.get(publisher)):
+            if not (publisher_id := next(self.__publisher_id)):
+                None
+
             self.__publishers[publisher] = publisher_id
-        
-        if languages := [self.parse_id(lang['key']) for lang in obj.get('languages', [])] :
-            self.__print_normalized(work_id, 'work_language', [languages[0]])
 
-        publish_date = obj.get('publish_date')
+        if languages := [
+            self.parse_id(lang["key"]) for lang in obj.get("languages", [])
+        ]:
+            self.__print_normalized(work_id, "work_language", [languages[0]])
+
+        publish_date = obj.get("publish_date")
         year = self.__find_year(publish_date) if publish_date else 0
         year = random.randint(1900, 2022) if year == 0 else year
 
-        if weight := obj.get('weight', None):
+        if weight := obj.get("weight", None):
             if kg_weight := self.__find_weight_in_kg(weight):
-                self.__print_normalized(work_id, 'work_weight', [kg_weight])
+                self.__print_normalized(work_id, "work_weight", [kg_weight])
 
-        self._write_strategy(self.__output_files['work'], {
-            'work_id': work_id,
-            'publisher_id': publisher_id,
-            'title': title,
-            'number_of_pages': number_of_pages,
-            'release_year': year,
-            'created': created,
-        })
+        self._write_strategy(
+            self.__output_files["work"],
+            {
+                "work_id": work_id,
+                "publisher_id": publisher_id,
+                "title": title,
+                "number_of_pages": number_of_pages,
+                "release_year": year,
+                "created": created,
+            },
+        )
 
     def __process_work(self, obj: dict) -> dict:
         """
@@ -217,18 +260,29 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         Returns:
             dict: A dictionary containing the parsed data.
         """
-        old_id = self.parse_id(obj.get('key', None))
+        old_id = self.parse_id(obj.get("key", None))
         work_id = self.__get_new_id(old_id, self.work_ids, self.__work_id)
-       
-        subjects = [self._capitalize_first(self.__html_escape(subject)) for subject in obj.get('subjects', [])]
-        self.cursor.executemany('INSERT OR IGNORE INTO work_subject VALUES (?, ?)', [(work_id, subject) for subject in subjects])
-    
-        work_authors = [self.parse_id(author['author']['key']) for author in obj.get('authors', [])]
-        author_ids = [ str(self.__get_new_id(old_id, self.__author_ids, self.__author_id)) for old_id in work_authors]
-        
+
+        subjects = [
+            self._capitalize_first(self.__html_escape(subject))
+            for subject in obj.get("subjects", [])
+        ]
+        self.cursor.executemany(
+            "INSERT OR IGNORE INTO work_subject VALUES (?, ?)",
+            [(work_id, subject) for subject in subjects],
+        )
+
+        work_authors = [
+            self.parse_id(author["author"]["key"]) for author in obj.get("authors", [])
+        ]  # @IgnoreException
+        author_ids = [
+            str(self.__get_new_id(old_id, self.__author_ids, self.__author_id))
+            for old_id in work_authors
+        ]
+
         for author_id in author_ids:
             self.__work_authors.setdefault(work_id, set()).add(author_id)
-    
+
     def __process_author(self, obj: dict) -> dict:
         """
         Process an author object and return a dictionary of parsed data.
@@ -239,16 +293,22 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         Returns:
             dict: A dictionary containing the parsed data.
         """
-        if not (created := self.__get_created(obj)) or not (name := self.__html_escape(obj.get('name', ''))):
+        # name = self.__html_escape(obj.get("name", "Unknown"))
+        # created = self.__get_created(obj) or datetime.now().isoformat()
+
+        if not (created := self.__get_created(obj)) or not (
+            name := self.__html_escape(obj.get("name", ""))
+        ):
             return
-        old_id = self.parse_id(obj.get('key', None))
+        old_id = self.parse_id(obj.get("key", None))
         author_id = self.__get_new_id(old_id, self.__author_ids, self.__author_id)
 
-        self._write_strategy(self.__output_files['author'], {
-            'id': author_id,
-            'name': name,
-            'created': created
-        })
+        self.cursor.execute("INSERT OR IGNORE INTO author_id VALUES (?)", (author_id,))
+
+        self._write_strategy(
+            self.__output_files["author"],
+            {"id": author_id, "name": name, "created": created},
+        )
 
     def __process_language(self, obj: dict) -> dict:
         """
@@ -262,27 +322,39 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         """
         if not (created := self.__get_created(obj)):
             return
-        id = self.parse_id(obj.get('key', None))
-        name = obj.get('name', '')
+        id = self.parse_id(obj.get("key", None))
+        name = obj.get("name", "")
 
         language = {
-            'id': id,
-            'name': name,
-            'speakers': speakers.get(id, 0),
-            'added_at': created,
+            "id": id,
+            "name": name,
+            "speakers": speakers.get(id, 0),
+            "added_at": created,
         }
 
         self._write_strategy(self.__language_file, language)
         self.__language_file.flush()
 
     def __process_subject(self, obj: dict) -> None:
+        """
+        Process the subject object and insert it into the subject table.
+
+        Args:
+            obj (dict): The subject object to be processed.
+
+        Returns:
+            None
+        """
         name = obj.get("name")
         created = self.__get_created(obj)
 
-        self.cursor.execute('INSERT OR IGNORE INTO subject(subject_name, created_at) VALUES (?, ?)', (name, created))
+        self.cursor.execute(
+            "INSERT OR IGNORE INTO subject(subject_name, created_at) VALUES (?, ?)",
+            (name, created),
+        )
 
-    @classmethod
-    def __get_created(cls, obj: dict) -> str:
+    @staticmethod
+    def __get_created(obj: dict) -> str:
         """
         Get the created timestamp from an object.
 
@@ -292,12 +364,18 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         Returns:
             str: The created timestamp.
         """
-        return obj.get('created', {}).get('value', '') \
-            if obj.get('created') else obj.get('last_modified', {}).get('value', '') \
-            if obj.get('last_modified') else datetime.now().isoformat()
+        return (
+            obj.get("created", {}).get("value", "")
+            if obj.get("created")
+            else (
+                obj.get("last_modified", {}).get("value", "")
+                if obj.get("last_modified")
+                else datetime.now().isoformat()
+            )
+        )
 
-    @classmethod
-    def __html_escape(cls, s: str) -> str:
+    @staticmethod
+    def __html_escape(s: str) -> str:
         """
         Escapes HTML entities in a string.
 
@@ -307,29 +385,40 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         Returns:
             str: The escaped string.
         """
-        s = s.replace('&NewLine', ' ').rstrip("&#13").rstrip("&#10").replace('&#10;', '').replace('&#13;', '').replace('"', '').replace('&quot;', '')
-        s = html.unescape(s).rstrip('\\')
-        return s.strip(punctuation+whitespace).replace('"', "'")
+        s = (
+            s.replace("&NewLine", " ")
+            .rstrip("&#13")
+            .rstrip("&#10")
+            .replace("&#10;", "")
+            .replace("&#13;", "")
+            .replace('"', "")
+            .replace("&quot;", "")
+        )
+        s = html.unescape(s).rstrip("\\")
+        return s.strip(punctuation + whitespace).replace('"', "'")
 
     def __print_normalized(self, id: str, name: str, obj: list) -> None:
-            """
-            Prints the normalized data for a given id, name, and object.
+        """
+        Prints the normalized data for a given id, name, and object.
 
-            Args:
-                id (str): The identifier for the data.
-                name (str): The name of the data.
-                obj (list[dict]): The list of dictionaries containing the data.
+        Args:
+            id (str): The identifier for the data.
+            name (str): The name of the data.
+            obj (list[dict]): The list of dictionaries containing the data.
 
-            Returns:
-                None
-            """
-            if (not obj):
-                return
+        Returns:
+            None
+        """
+        if not obj:
+            return
 
-            self._list_write_strategy(self.__output_files[name], [item for item in [{ "id": id, name : unit } for unit in obj if unit]])
+        self._list_write_strategy(
+            self.__output_files[name],
+            list([{"id": id, name: unit} for unit in obj if unit]),
+        )
 
-    @classmethod
-    def __find_year(cls, s: str) -> int:
+    @staticmethod
+    def __find_year(s: str) -> int:
         """
         Finds the first occurrence of a 4-digit year in a given string.
 
@@ -340,15 +429,15 @@ class OLDumpParser(OLAbstractParser, FileWriter):
             int: The found year if it is less than or equal to the current year, otherwise 0.
         """
         current_year = datetime.now().year
-        pattern = re.compile(r'\b\d{4}\b')
+        pattern = re.compile(r"\b\d{4}\b")
         for match in pattern.finditer(s):
             year = int(match.group())
             if year <= current_year:
                 return year
         return 0
 
-    @classmethod
-    def __find_weight_in_kg(cls, s: str) -> float:
+    @staticmethod
+    def __find_weight_in_kg(s: str) -> float:
         """
         Finds the weight in kilograms from a given string.
 
@@ -359,18 +448,18 @@ class OLDumpParser(OLAbstractParser, FileWriter):
             float: The weight in kilograms, rounded to 2 decimal places.
                     Returns None if the weight cannot be found.
         """
-        pattern = re.compile(r'\d+(\.\d+)?')
+        pattern = re.compile(r"\d+(\.\d+)?")
         result = 0
-        if 'k' in s:
+        if "k" in s:
             result = list(pattern.finditer(s))
             result = float(result[0].group()) if result else None
-        elif 'g' in s:
+        elif "g" in s:
             result = list(pattern.finditer(s))
             result = float(result[0].group()) / 1000 if result else None
-        elif 'z' in s or 'ounc' in s:
+        elif "z" in s or "ounc" in s:
             result = list(pattern.finditer(s))
             result = float(result[0].group()) / 35.284 if result else None
-        elif 'lb' in s or 'pound' in s:
+        elif "lb" in s or "pound" in s:
             result = list(pattern.finditer(s))
             result = float(result[0].group()) / 2.205 if result else None
         return round(result, 2) if result else None
@@ -389,7 +478,13 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         self._dict_write_strategy(self.__output_files[name], dictionary)
         dictionary = {}
 
-    def __write_work_authors(self, dictionary: dict[int, set], name: str) -> None:
+    @staticmethod
+    def chunks(lst, n):
+        """Yield successive n-sized chunks from lst."""
+        for i in range(0, len(lst), n):
+            yield lst[i : i + n]
+
+    def __write_work_authors(self) -> None:
         """
         Writes the given dictionary of sets to the output file with the specified name.
 
@@ -400,11 +495,34 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         Returns:
             None
         """
-        for key, values in dictionary.items():
-            if key in self.work_ids:
-                for value in values:
-                    self._write_strategy(self.__output_files[name], { "work_id": key, "author_id" : value })        
-        dictionary = {}
+        keys = list(self.__work_authors.keys())
+        chunk_size = 1000
+
+        for chunk in self.chunks(keys, chunk_size):
+            placeholders = ", ".join("?" for _ in chunk)
+            self.cursor.execute(
+                f"SELECT work_id FROM work_isbn WHERE work_id IN ({placeholders})",
+                chunk,
+            )
+
+            work_ids_in_db = set(row[0] for row in self.cursor.fetchall())
+
+            for key in chunk:
+                if key in work_ids_in_db and (
+                    values := self.__work_authors.get(key, None)
+                ):
+                    for value in values:
+                        self.cursor.execute(
+                            "SELECT 1 FROM author_id WHERE author_id = ? LIMIT 1",
+                            (value,),
+                        )
+                        if self.cursor.fetchone():
+                            self._write_strategy(
+                                self.__output_files["work_author"],
+                                {"work_id": key, "author_id": value},
+                            )
+
+        del self.__work_authors
 
     def __build_title(self, obj: dict) -> str:
         """
@@ -417,20 +535,38 @@ class OLDumpParser(OLAbstractParser, FileWriter):
             str: The built title string.
         """
         title_builder = io.StringIO()
-        title_builder.write(obj.get('title_prefix', ''))
-        title_builder.write('. ')
-        title_builder.write(obj.get('title', ''))
-        title_builder.write(': ')
-        title_builder.write(obj.get('subtitle', ''))
-        title_builder.write(' ')
-        title_builder.write(obj.get('by_statement', ''))
+        title_builder.write(obj.get("title_prefix", ""))
+        title_builder.write(". ")
+        title_builder.write(obj.get("title", ""))
+        title_builder.write(": ")
+        title_builder.write(obj.get("subtitle", ""))
+        title_builder.write(" ")
+        title_builder.write(obj.get("by_statement", ""))
         title = self.__html_escape(title_builder.getvalue())
         return title
 
     def __get_new_id(self, old_id: str, id_dict: dict, id_gen: itertools.count) -> str:
-        if not (new_id:= id_dict.get(old_id, None)):
-            new_id = next(id_gen)
-            id_dict[old_id] = new_id
+        """
+        Returns a new ID for the given old ID, using the provided ID dictionary and ID generator.
+
+        Args:
+            old_id (str): The old ID for which a new ID is needed.
+            id_dict (dict): A dictionary mapping old IDs to new IDs.
+            id_gen (itertools.count): An iterator that generates new IDs.
+
+        Returns:
+            str: The new ID corresponding to the old ID.
+
+        Raises:
+            StopIteration: If the ID generator is exhausted and no new ID can be generated.
+
+        """
+        try:
+            if not (new_id := id_dict.get(old_id, None)):
+                new_id = next(id_gen)
+                id_dict[old_id] = new_id
+        except StopIteration:
+            new_id = None
         return new_id
 
     def __write_subjects(self) -> None:
@@ -440,9 +576,8 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         Returns:
             None
         """
-
         select_count10_or_max = """
-            WITH frequent_subjects AS (
+            WITH frequent_subject AS (
                 SELECT
                     subject_name
                 FROM
@@ -451,7 +586,7 @@ class OLDumpParser(OLAbstractParser, FileWriter):
                     subject_name
                 HAVING
                     COUNT(*) >= 10
-                    
+
             UNION
 
                 SELECT
@@ -476,91 +611,45 @@ class OLDumpParser(OLAbstractParser, FileWriter):
             )
         """
 
-        self.cursor.execute(select_count10_or_max + '''
-            SELECT 
+        self.cursor.execute(
+            select_count10_or_max
+            + """
+            SELECT
                 work_subject.work_id,
                 subject.subject_id
-            FROM 
+            FROM
                 work_subject
-            JOIN 
+            JOIN
                 subject
-            ON 
+            ON
                 work_subject.subject_name = subject.subject_name
-            WHERE 
-                work_subject.subject_name IN frequent_subjects
-        ''')
-        self._sqlite_write_strategy(self.__output_files['work_subject'], self.cursor.fetchall())
+            JOIN
+                work_isbn
+            on
+                work_isbn.work_id = work_subject.work_id
+            WHERE
+                work_subject.subject_name IN frequent_subject
+        """
+        )
+        self._sqlite_write_strategy(
+            self.__output_files["work_subject"], self.cursor.fetchall()
+        )
 
-        self.cursor.execute(select_count10_or_max + '''
-            SELECT 
+        self.cursor.execute(
+            select_count10_or_max
+            + """
+            SELECT
                 subject.subject_id,
                 subject.subject_name
-            FROM 
+            FROM
                 subject
-            JOIN 
-                frequent_subjects
-            ON 
-                subject.subject_name = frequent_subjects.subject_name
-        ''')
+            JOIN
+                frequent_subject
+            ON
+                subject.subject_name = frequent_subject.subject_name
+        """
+        )
 
-        self._sqlite_write_strategy(self.__output_files['subject'], self.cursor.fetchall())
-
-    def __create_db_schema(self):
-            """
-            Creates the database schema for the Open Library dump parser.
-
-            This method drops existing tables if they exist and creates new tables with the following structure:
-            - work_isbn: work_id (TEXT), isbn (TEXT), primary key (work_id, isbn)
-            - subject: subject_id (INTEGER), subject_name (TEXT), created_at (timestamp), primary key (subject_id)
-            - work_subject: work_id (TEXT), subject_name (TEXT), primary key (work_id, subject_name)
-
-            Indexes are also created on the work_isbn and work_subject tables.
-
-            Returns:
-                None
-            """
-            self.cursor.execute('''
-                DROP TABLE IF EXISTS work_isbn;
-            ''')
-            self.cursor.execute('''
-                DROP TABLE IF EXISTS work_subject;
-            ''')
-            self.cursor.execute('''
-                DROP TABLE IF EXISTS subject;
-            ''')
-            self.cursor.execute('''
-                CREATE TABLE IF NOT EXISTS work_isbn (
-                    work_id TEXT,
-                    isbn TEXT,
-                    PRIMARY KEY(work_id, isbn)
-                )
-            ''')
-            self.cursor.execute('''
-                CREATE INDEX IF NOT EXISTS idx_work_id ON work_isbn(work_id);
-            ''')
-            self.cursor.execute('''
-                CREATE INDEX IF NOT EXISTS idx_isbn ON work_isbn(isbn);
-            ''')
-            self.cursor.execute('''
-                CREATE TABLE subject(
-                    subject_id INTEGER PRIMARY KEY,
-                    subject_name TEXT UNIQUE NOT NULL,
-                    created_at timestamp DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            self.cursor.execute('''
-                CREATE INDEX IF NOT EXISTS subject_idx_work_id ON subject(subject_name);
-            ''')
-            self.cursor.execute('''
-                CREATE TABLE work_subject(
-                    work_id TEXT,
-                    subject_name TEXT NOT NULL,
-                    PRIMARY KEY(work_id, subject_name)
-                )
-            ''')
-            self.cursor.execute('''
-                CREATE INDEX IF NOT EXISTS work_subject_idx_work_id ON work_subject(work_id);
-            ''')
-            self.cursor.execute('''
-                CREATE INDEX IF NOT EXISTS work_subject_idx_isbn ON work_subject(subject_name);
-            ''')
+        self._sqlite_write_strategy(
+            self.__output_files["subject"], self.cursor.fetchall()
+        )

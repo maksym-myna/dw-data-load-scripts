@@ -2,8 +2,7 @@ from abc import ABC, abstractmethod
 import sqlite3
 
 from parsers.abstract_parser import AbstractParser
-import parsers.ol_readings_parser as olreadsp
-import parsers.ol_ratings_parser as olratesp
+import parsers.ol_reads_rates_parser as olrrsp
 import parsers.ol_dump_parser as oldumpp
 import parsers.sl_dump_parser as sldumpp
 
@@ -12,6 +11,7 @@ import requests
 import gzip
 
 from parsers.user_manager import UserManager
+
 
 class DataProcessor(ABC):
     """
@@ -23,18 +23,24 @@ class DataProcessor(ABC):
     Attributes:
         user_manager (UserManager): An instance of the UserManager class.
         old_parser (OLDumpParser): An instance of the OLDumpParser class.
-        ol_parsers (list[AbstractParser]): A list of instances of the OLRatingsParser and OLReadingsParser classes.
+        ol_parsers (list[AbstractParser]): A list of instances of the
+            OLRatingsParser and OLReadingsParser classes.
         sl_parser (SLDataParser): An instance of the SLDataParser class.
-        ol_files (dict): A dictionary mapping URLs to file paths for Open Library files.
-        sl_files (dict): A dictionary mapping URLs to file paths for Seattle Library files.
+        ol_files (dict): A dictionary of Open Library files URLs.
+        sl_files (dict): A dictionary of Seattle Library files URLs.
 
     Methods:
-        run(cls, directory=r'open library dump'): Abstract method to run the data processing.
-        download_file(url: str, download_path: str) -> str: Downloads a file from a URL.
-        unarchive_file(archive_path: str, unarchive_path: str) -> str: Unarchives a gzip compressed file.
+        run(self, directory=r'open library dump'):
+            Abstract method to run the data processing.
+        download_file(url: str, download_path: str) -> str:
+            Downloads a file from a URL.
+        unarchive_file(archive_path: str, unarchive_path: str) -> str:
+            Unarchives a gzip compressed file.
         delete_file(*path: str) -> None: Deletes the specified files.
-        download_and_unarchive_datasets(cls) -> None: Downloads and unarchives the datasets.
+        download_and_unarchive_datasets(cls) -> None:
+            Downloads and unarchives the datasets.
     """
+
     def __init__(self, file_type: str) -> None:
         """
         Initializes a DataProcessor object.
@@ -45,31 +51,34 @@ class DataProcessor(ABC):
         Returns:
             None
         """
-        self.conn = sqlite3.connect('temp.db')
+        self.sqlite_conn = sqlite3.connect("temp.db")
         self.type_name = file_type
         self.user_manager = UserManager(file_type)
 
-        self.old_parser = oldumpp.OLDumpParser(self.conn, file_type, self.user_manager)
+        self.old_parser = oldumpp.OLDumpParser(
+            self.sqlite_conn, file_type, self.user_manager
+        )
         self.ol_parsers = [
-            olratesp.OLRatingsParser(file_type, self.user_manager),
-            olreadsp.OLReadingsParser(file_type, self.user_manager),
+            olrrsp.OLRRParser(
+                self.sqlite_conn, file_type, self.user_manager, "listing"
+            ),
+            olrrsp.OLRRParser(self.sqlite_conn, file_type, self.user_manager, "rating"),
         ]
-        self.sl_parser = sldumpp.SLDataParser(self.conn, file_type, self.user_manager)
+        self.sl_parser = sldumpp.SLDataParser(
+            self.sqlite_conn, file_type, self.user_manager
+        )
         self.ol_files = {
-            'https://openlibrary.org/data/ol_dump_latest.txt.gz' :
-                'open library dump/ol_dump_latest.txt.gz',
-            'https://openlibrary.org/data/ol_dump_ratings_latest.txt.gz' :
-                'open library dump/ol_dump_ratings_latest.txt.gz',
-            'https://openlibrary.org/data/ol_dump_reading-log_latest.txt.gz' :
-                'open library dump/ol_dump_reading-log_latest.txt.gz'
-            }
+            "https://openlibrary.org/data/ol_dump_latest.txt.gz": "open library dump/ol_dump_latest.txt.gz",
+            "https://openlibrary.org/data/ol_dump_ratings_latest.txt.gz": "open library dump/ol_dump_ratings_latest.txt.gz",
+            "https://openlibrary.org/data/ol_dump_reading-log_latest.txt.gz": "open library dump/ol_dump_reading-log_latest.txt.gz",
+        }
         self.sl_files = {
-            'https://data.seattle.gov/resource/tmmm-ytt6.json?$query=SELECT%20'
-            '`materialtype`,%20`checkoutyear`,%20`checkoutmonth`,%20`checkouts`,%20`title'
-            '`,%20`isbn`%20WHERE%20(`isbn`%20IS%20NOT%20NULL)%20AND%20caseless_one_of(%20'
-            '`materialtype`,%20%22BOOK,%20ER%22,%20%22BOOK%22,%20%22AUDIOBOOK%22,%20'
-            '%22EBOOK%22%20)ORDER%20BY%20`title`%20DESC%20NULL%20LAST,%20`isbn`%20DESC'
-            '%20NULL%20LAST%20LIMIT%202147483647' : 'seattle library dump/checkouts.json'
+            "https://data.seattle.gov/resource/tmmm-ytt6.json?$query=SELECT%20"
+            "`materialtype`,%20`checkoutyear`,%20`checkoutmonth`,%20`checkouts`,%20`title"
+            "`,%20`isbn`%20WHERE%20(`isbn`%20IS%20NOT%20NULL)%20AND%20caseless_one_of(%20"
+            "`materialtype`,%20%22BOOK,%20ER%22,%20%22BOOK%22,%20%22AUDIOBOOK%22,%20"
+            "%22EBOOK%22%20)ORDER%20BY%20`title`%20DESC%20NULL%20LAST,%20`isbn`%20DESC"
+            "%20NULL%20LAST%20LIMIT%202147483647": "seattle library dump/checkouts.json"
         }
 
     def __del__(self) -> None:
@@ -79,11 +88,11 @@ class DataProcessor(ABC):
         Returns:
             None
         """
-        self.conn.close()
-        os.remove('temp.db')
+        self.sqlite_conn.close()
+        os.remove("temp.db")
 
     @abstractmethod
-    def run(cls, directory = r'open library dump') -> None:
+    def run(self, directory=r"open library dump") -> None:
         """
         Process the data in the specified directory.
 
@@ -96,29 +105,31 @@ class DataProcessor(ABC):
     @staticmethod
     def download_file(url: str, download_path: str) -> str:
         """
-        Downloads a file from the given URL and saves it to the specified download path.
+        Downloads a file from the URL and saves it to the download path.
 
         Args:
             url (str): The URL of the file to be downloaded.
-            download_path (str): The path where the downloaded file will be saved.
+            download_path (str): The path to save the downloaded file.
 
         Returns:
             str: The path of the downloaded file.
 
         """
         response = requests.get(url, stream=True)
-        total_size = int(response.headers.get('content-length', 0))
+        total_size = int(response.headers.get("content-length", 0))
         downloaded_size = 0
 
         if not AbstractParser.is_path_valid(download_path):
             raise NotADirectoryError(download_path)
 
-        with open(download_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=1024*1024):
+        with open(download_path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=1024 * 1024):
                 if chunk:  # filter out keep-alive new chunks
                     downloaded_size += len(chunk)
                     f.write(chunk)
-                    print(f"Download progress: {100 * downloaded_size / total_size:.2f}%")
+                    print(
+                        f"Download progress: {100 * downloaded_size / total_size:.2f}%"
+                    )
 
         return download_path
 
@@ -139,14 +150,16 @@ class DataProcessor(ABC):
         total_size = os.path.getsize(archive_path)
         unarchived_size = 0
 
-        if not AbstractParser.is_path_valid(archive_path) or \
-                not AbstractParser.is_path_valid(unarchive_path):
+        if not AbstractParser.is_path_valid(
+            archive_path
+        ) or not AbstractParser.is_path_valid(unarchive_path):
             raise NotADirectoryError(archive_path)
 
-        with gzip.open(archive_path, 'rb') as f_in, \
-                open(os.path.join(unarchive_path, original_file_name), 'wb') as f_out:
+        with gzip.open(archive_path, "rb") as f_in, open(
+            os.path.join(unarchive_path, original_file_name), "wb"
+        ) as f_out:
             while True:
-                chunk = f_in.read(1024*1024*256)  # read 256MB at a time
+                chunk = f_in.read(1024 * 1024 * 256)  # read 256MB at a time
                 if not chunk:
                     break
                 unarchived_size += len(chunk)
@@ -156,7 +169,7 @@ class DataProcessor(ABC):
         return unarchive_path
 
     @staticmethod
-    def delete_file(*path : str) -> None:
+    def delete_file(*path: str) -> None:
         """
         Deletes the specified files.
 
@@ -189,7 +202,7 @@ class DataProcessor(ABC):
         """
         for url, download_path in cls.ol_files.items():
             archive = DataProcessor.download_file(url, download_path)
-            DataProcessor.unarchive_file(archive, 'open library dump/')
+            DataProcessor.unarchive_file(archive, "open library dump/")
 
         for url, download_path in cls.sl_files.items():
             archive = DataProcessor.download_file(url, download_path)

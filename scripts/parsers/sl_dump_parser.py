@@ -21,7 +21,9 @@ class SLDataParser(AbstractParser, FileWriter):
     process SL data files.
     """
 
-    def __init__(self, conn: sqlite3.Connection,file_type: str, user_manager: UserManager) -> None:
+    def __init__(
+        self, conn: sqlite3.Connection, file_type: str, user_manager: UserManager
+    ) -> None:
         """
         Initialize the SLDumpParser object.
 
@@ -32,7 +34,7 @@ class SLDataParser(AbstractParser, FileWriter):
         Returns:
             None
         """
-        AbstractParser.__init__(self, user_manager)
+        AbstractParser.__init__(self, user_manager, conn)
         FileWriter.__init__(self, file_type)
 
         self.loans = []
@@ -42,10 +44,7 @@ class SLDataParser(AbstractParser, FileWriter):
         self.loanId = itertools.count(1)
         self.inventoryId = itertools.count(1)
 
-        self.conn = conn
-        self.cursor = self.conn.cursor()
-
-    def process_file(self, input_file: str, output_files: list[str] ) -> list[str]:
+    def process_file(self, input_file: str, output_files: list[str]) -> list[str]:
         """
         Process the input file and write the modified JSON objects to the output file.
 
@@ -56,24 +55,32 @@ class SLDataParser(AbstractParser, FileWriter):
         if not AbstractParser.is_path_valid(input_file):
             raise NotADirectoryError(input_file)
 
-        location = output_files[1].rpartition('\\')[0]
-        item_out_location = location + f'\\inventory_item.{self.type_name}'
-        with open(input_file, 'r', encoding='utf-8') as f_in, \
-                open(output_files[0], 'w', encoding='utf-8', newline='') as loan_out, \
-                    open(output_files[1], 'w', encoding='utf-8', newline='') as return_out, \
-                        open(item_out_location, 'w', encoding='utf-8', newline='') as item_out:
+        location = output_files[1].rpartition("\\")[0]
+        item_out_location = location + f"\\inventory_item.{self.type_name}"
+        with open(input_file, "r", encoding="utf-8") as f_in, open(
+            output_files[0], "w", encoding="utf-8", newline=""
+        ) as loan_out, open(
+            output_files[1], "w", encoding="utf-8", newline=""
+        ) as return_out, open(
+            item_out_location, "w", encoding="utf-8", newline=""
+        ) as item_out:
             for line in f_in:
                 try:
-                    line = line.replace('[', '').replace(']', '').replace(',{', '{').replace(r'\\\\',r'\\')
+                    line = (
+                        line.replace("[", "")
+                        .replace("]", "")
+                        .replace(",{", "{")
+                        .replace(r"\\\\", r"\\")
+                    )
 
                     data = orjson.loads(line)
-                    data = self.__parse_file(data)
+                    self.__parse_file(data)
                 except Exception:
                     continue
 
             self.process_data(item_out, loan_out, return_out)
         self.clear_up()
-        return output_files + [item_out_location]
+        return [item_out_location] + output_files
 
     def __parse_file(self, line: dict) -> None:
         """
@@ -85,35 +92,48 @@ class SLDataParser(AbstractParser, FileWriter):
         Returns:
             dict: A dictionary containing the extracted information.
         """
-        checkoutyear = int(line.get('checkoutyear', 0))
-        checkoutmonth = int(line.get('checkoutmonth', 0))
-        checkouts = int(line.get('checkouts', 0))
-        material_type = line.get('materialtype', None)
+        checkoutyear = int(line.get("checkoutyear", 0))
+        checkoutmonth = int(line.get("checkoutmonth", 0))
+        checkouts = int(line.get("checkouts", 0))
+        material_type = line.get("materialtype", None)
 
-        split_isbns = [isbn.strip(" '") for isbn in line.get('isbn').split(',')]
+        split_isbns = [isbn.strip(" '") for isbn in line.get("isbn").split(",")]
         isbns = self.convert_to_isbn13(split_isbns)
 
         work_id = None
         for isbn in isbns:
-            self.cursor.execute('SELECT work_id FROM work_isbn WHERE isbn = ?', (isbn,))
+            self.cursor.execute("SELECT work_id FROM work_isbn WHERE isbn = ?", (isbn,))
             if result := self.cursor.fetchone():
                 work_id = result[0]
         if not work_id:
             return
 
-        self.loans.append({
-            "checkout_year" : checkoutyear,
-            "checkout_month" : checkoutmonth,
-            "checkouts" : checkouts,
-            "work_id": work_id
-        })
+        self.loans.append(
+            {
+                "checkout_year": checkoutyear,
+                "checkout_month": checkoutmonth,
+                "checkouts": checkouts,
+                "work_id": work_id,
+            }
+        )
 
         self.items_maxxing[work_id] = {
-                "qty": max(self.items_maxxing.get(work_id, {"qty" : 0}).get("qty", 0), checkouts) if material_type == 'BOOK' else 1,
-                "material_type": material_type
-            }
+            "qty": (
+                max(
+                    self.items_maxxing.get(work_id, {"qty": 0}).get("qty", 0), checkouts
+                )
+                if material_type == "BOOK"
+                else 1
+            ),
+            "material_type": material_type,
+        }
 
-    def process_data(self, item_out: TextIOWrapper, loan_out: TextIOWrapper, return_out: TextIOWrapper):
+    def process_data(
+        self,
+        item_out: TextIOWrapper,
+        loan_out: TextIOWrapper,
+        return_out: TextIOWrapper,
+    ):
         """
         Process data to generate items, loans, and loan returns.
 
@@ -128,20 +148,35 @@ class SLDataParser(AbstractParser, FileWriter):
             qty = item.get("qty")
             material_type = item.get("material_type")
 
-            checkouts = qty - random.randint(-2, 2) if qty > 5 else qty - random.randint(-1, 1) if qty > 2 else qty
+            checkouts = (
+                qty - random.randint(-2, 2)
+                if qty > 5
+                else qty - random.randint(-1, 1) if qty > 2 else qty
+            )
 
             start_datetime = datetime(2010, 1, 1)
-            ids=[]
+            ids = []
             for _ in range(0, checkouts):
-                id = next(self.inventoryId)
+                if not (id := next(self.inventoryId)):
+                    return None
+
                 ids.append(id)
-                self._write_strategy(item_out, {
-                    'inventory_id': id,
-                    'work_id': key,
-                    'material_type' : material_type,
-                    'added_at': start_datetime + timedelta(
-                    days=random.randint(0, (datetime.now() - start_datetime).days))
-                })
+                self._write_strategy(
+                    item_out,
+                    {
+                        "inventory_id": id,
+                        "work_id": key,
+                        "material_type": material_type,
+                        "added_at": (
+                            start_datetime
+                            + timedelta(
+                                days=random.randint(
+                                    0, (datetime.now() - start_datetime).days
+                                )
+                            )
+                        ).isoformat(),
+                    },
+                )
             items_ids[key] = ids
             ids = []
             del self.items_maxxing[key]
@@ -156,24 +191,31 @@ class SLDataParser(AbstractParser, FileWriter):
                 random.shuffle(ids)
 
                 loaned_at = datetime(
-                        checkoutyear,
-                        checkoutmonth,
-                        random.randint(1, calendar.monthrange(checkoutyear, checkoutmonth)[1]),
-                        random.randint(0, 23),
-                        random.randint(0, 59),
-                        random.randint(0, 59),
-                        random.randint(0, 999999)
-                    )
+                    checkoutyear,
+                    checkoutmonth,
+                    random.randint(
+                        1, calendar.monthrange(checkoutyear, checkoutmonth)[1]
+                    ),
+                    random.randint(0, 23),
+                    random.randint(0, 59),
+                    random.randint(0, 59),
+                    random.randint(0, 999999),
+                )
+                if not (loan_id := next(self.loanId)):
+                    return None
+
                 loan = {
-                    'loan_id': next(self.loanId),
-                    'user_id': self.user_manager.get_or_generate_reader(),
-                    'inventory_id': ids[i%len(ids)],
-                    'loaned_at': loaned_at.isoformat()
+                    "loan_id": loan_id,
+                    "user_id": self.user_manager.get_or_generate_reader(),
+                    "inventory_id": ids[i % len(ids)],
+                    "loaned_at": loaned_at.isoformat(),
                 }
 
                 loan_return = {
                     "loan_id": loan["loan_id"],
-                    "return_date": (loaned_at + timedelta(days=random.randint(1, 14))).isoformat()
+                    "return_date": (
+                        loaned_at + timedelta(days=random.randint(1, 14))
+                    ).isoformat(),
                 }
 
                 self._write_strategy(loan_out, loan)

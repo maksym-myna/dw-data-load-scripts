@@ -2,6 +2,7 @@ from io import TextIOWrapper
 import orjson
 import csv
 
+
 class FileWriter:
     """
     A class that provides functionality to write data to different file types.
@@ -19,12 +20,12 @@ class FileWriter:
     """
 
     def __init__(self, file_type):
-        if file_type == 'jsonl':
+        if file_type == "jsonl":
             self._write_strategy = self.__write_jsonl
             self._list_write_strategy = self.__write_jsonl_list
             self._dict_write_strategy = self.__write_jsonl_dict
             self._sqlite_write_strategy = self.__write_jsonl_sqlite
-        else:
+        elif file_type == "csv":
             self._write_strategy = self.__write_csv
             self._list_write_strategy = self.__write_csv_list
             self._dict_write_strategy = self.__write_csv_dict
@@ -32,8 +33,8 @@ class FileWriter:
 
         self.type_name = file_type
 
-    @classmethod
-    def __write_csv(cls, file: TextIOWrapper, obj: dict) -> None:
+    @staticmethod
+    def __write_csv(file: TextIOWrapper, obj: dict) -> None:
         """
         Writes a dictionary object to a CSV file.
 
@@ -47,8 +48,8 @@ class FileWriter:
         writer = csv.DictWriter(file, fieldnames=obj.keys(), quoting=csv.QUOTE_ALL)
         writer.writerow(obj)
 
-    @classmethod
-    def __write_csv_list(cls, file: TextIOWrapper, obj_list: list[dict]) -> None:
+    @staticmethod
+    def __write_csv_list(file: TextIOWrapper, obj_list: list[dict]) -> None:
         """
         Writes a list of dictionary objects to a CSV file.
 
@@ -59,11 +60,13 @@ class FileWriter:
         Returns:
             None
         """
-        writer = csv.DictWriter(file, fieldnames=obj_list[0].keys(), quoting=csv.QUOTE_ALL)
+        writer = csv.DictWriter(
+            file, fieldnames=obj_list[0].keys(), quoting=csv.QUOTE_ALL
+        )
         writer.writerows(obj_list)
-    
-    @classmethod
-    def __write_csv_dict(cls, file: TextIOWrapper, dict: dict) -> None:
+
+    @staticmethod
+    def __write_csv_dict(file: TextIOWrapper, dict: dict) -> None:
         """
         Writes a dictionary object to a CSV file.
 
@@ -78,8 +81,8 @@ class FileWriter:
         for key, value in dict.items():
             writer.writerow([value, key])
 
-    @classmethod
-    def __write_csv_sqlite(cls, file: TextIOWrapper, rows:list[any]) -> None:
+    @staticmethod
+    def __write_csv_sqlite(file: TextIOWrapper, rows: list[any]) -> None:
         """
         Writes a list of dictionary objects to a CSV file.
 
@@ -93,8 +96,8 @@ class FileWriter:
         writer = csv.writer(file, quoting=csv.QUOTE_ALL)
         writer.writerows(rows)
 
-    @classmethod
-    def __write_jsonl(cls, file: TextIOWrapper, obj: dict) -> None:
+    @staticmethod
+    def __write_jsonl(file: TextIOWrapper, obj: dict) -> None:
         """
         Writes a dictionary object to a JSONL file.
 
@@ -105,10 +108,10 @@ class FileWriter:
         Returns:
             None
         """
-        file.write(orjson.dumps(obj).decode('utf-8') + '\n')
+        file.write(orjson.dumps(obj).decode("utf-8") + "\n")
 
-    @classmethod
-    def __write_jsonl_list(cls, file: TextIOWrapper, obj_list: list[dict]) -> None:
+    @staticmethod
+    def __write_jsonl_list(file: TextIOWrapper, obj_list: list[dict]) -> None:
         """
         Writes a list of dictionary objects to a JSONL file.
 
@@ -119,10 +122,12 @@ class FileWriter:
         Returns:
             None
         """
-        file.write('\n'.join(orjson.dumps(obj).decode('utf-8') for obj in obj_list) + '\n')
+        file.write(
+            "\n".join(orjson.dumps(obj).decode("utf-8") for obj in obj_list) + "\n"
+        )
 
-    @classmethod
-    def __write_jsonl_dict(cls, file: TextIOWrapper, dict: dict) -> None:
+    @staticmethod
+    def __write_jsonl_dict(file: TextIOWrapper, dict: dict) -> None:
         """
         Writes a dictionary object to a JSONL file.
 
@@ -135,10 +140,10 @@ class FileWriter:
         """
         for key, value in dict.items():
             orjson.dumps({key: value}, file)
-            file.write('\n')
+            file.write("\n")
 
-    @classmethod
-    def __write_jsonl_sqlite(cls, file: TextIOWrapper, rows: list[any]) -> None:
+    @staticmethod
+    def __write_jsonl_sqlite(file: TextIOWrapper, rows: list[any]) -> None:
         """
         Writes a list of dictionary objects to a JSONL file.
 
@@ -151,4 +156,4 @@ class FileWriter:
         """
         for row in rows:
             orjson.dumps(row, file)
-            file.write('\n')
+            file.write("\n")

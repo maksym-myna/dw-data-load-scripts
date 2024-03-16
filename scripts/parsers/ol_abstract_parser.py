@@ -18,8 +18,8 @@ class OLAbstractParser(AbstractParser):
         None
         """
 
-    @classmethod
-    def parse_id(cls, key: str) -> str:
+    @staticmethod
+    def parse_id(key: str) -> str:
         """
         Parse the ID from the given key.
 
@@ -29,10 +29,10 @@ class OLAbstractParser(AbstractParser):
         Returns:
         str: The extracted ID.
         """
-        return key.split('/')[-1]
+        return key.split("/")[-1]
 
-    @classmethod
-    def get_random_time(cls):
+    @staticmethod
+    def get_random_time():
         """
         Provides a random time in the format HH:MM:SS.
 
@@ -42,4 +42,4 @@ class OLAbstractParser(AbstractParser):
         hours = str(random.randint(0, 23)).zfill(2)
         minutes = str(random.randint(0, 59)).zfill(2)
         seconds = str(random.randint(0, 59)).zfill(2)
-        return f'{hours}:{minutes}:{seconds}'
+        return f"{hours}:{minutes}:{seconds}"

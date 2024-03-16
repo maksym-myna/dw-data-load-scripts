@@ -39,8 +39,9 @@ class GDriveAuth:
         """
         try:
             if os.path.exists("token.json"):
-                self.creds = Credentials.from_authorized_user_file('token.json',
-                                                                   self.SCOPES)
+                self.creds = Credentials.from_authorized_user_file(
+                    "token.json", self.SCOPES
+                )
         except JSONDecodeError:
             self.creds = None
 
@@ -49,9 +50,9 @@ class GDriveAuth:
                 self.creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
-                    r'scripts\gdrive\credentials.json', self.SCOPES
+                    r"scripts\gdrive\credentials.json", self.SCOPES
                 )
                 creds = flow.run_local_server(port=0)
 
-            with open('token.json',  'w') as token:
+            with open("token.json", "w") as token:
                 token.write(creds.to_json())
