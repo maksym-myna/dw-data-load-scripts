@@ -1,4 +1,5 @@
 from io import TextIOWrapper
+import os
 import sqlite3
 import orjson
 import datetime
@@ -55,8 +56,9 @@ class SLDataParser(AbstractParser, FileWriter):
         if not AbstractParser.is_path_valid(input_file):
             raise NotADirectoryError(input_file)
 
-        location = output_files[1].rpartition("\\")[0]
-        item_out_location = location + f"\\inventory_item.{self.type_name}"
+        directory = output_files[1].rpartition("\\")[0]
+        item_out_location = directory + f"\\inventory_item.{self.type_name}"
+        os.makedirs(f"{directory}\data", exist_ok=True)
         with open(input_file, "r", encoding="utf-8") as f_in, open(
             output_files[0], "w", encoding="utf-8", newline=""
         ) as loan_out, open(
