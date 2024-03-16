@@ -97,9 +97,8 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         if not AbstractParser.is_path_valid(input_file):
             raise NotADirectoryError(input_file)
 
-        self.__lang_file_location = rf"open library dump\data\lang.{self.type_name}"
         self.__language_file = open(
-            self.__lang_file_location,
+            rf"open library dump\data\lang.{self.type_name}",
             "w",
             encoding="utf-8",
             newline="",
@@ -147,7 +146,7 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         if not AbstractParser.is_path_valid(directory):
             raise NotADirectoryError(directory)
 
-        os.makedirs(f"{directory}\data", exist_ok=True)
+        os.makedirs(rf"{directory}\data", exist_ok=True)
         self.__output_files = {
             type_name: open(
                 os.path.join(directory, rf"data\{type_name}.{self.type_name}"),
