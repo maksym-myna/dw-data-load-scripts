@@ -225,7 +225,7 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         )
         if not (publisher_id := self.__publishers.get(publisher)):
             if not (publisher_id := next(self.__publisher_id)):
-                None
+                return None
 
             self.__publishers[publisher] = publisher_id
 
@@ -614,11 +614,10 @@ class OLDumpParser(OLAbstractParser, FileWriter):
                     )
             )
         """
-
         self.cursor.execute(
             select_count10_or_max
             + """
-            SELECT
+            SELECT DISTINCT
                 work_subject.work_id,
                 subject.subject_id
             FROM
@@ -627,10 +626,12 @@ class OLDumpParser(OLAbstractParser, FileWriter):
                 subject
             ON
                 work_subject.subject_name = subject.subject_name
+            JOIN
+                work_isbn
+            ON
+                work_isbn.work_id = work_subject.work_id
             WHERE
                 work_subject.subject_name IN frequent_subject
-            AND
-                work_subject.work_id IN (SELECT work_id FROM work_isbn)
         """
         )
         self._sqlite_write_strategy(

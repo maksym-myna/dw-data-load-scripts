@@ -11,5 +11,6 @@
 *.docx
 *.db*
 *.java
+*.sh
 
 db_secrets.py
