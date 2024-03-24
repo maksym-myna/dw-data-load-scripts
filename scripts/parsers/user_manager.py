@@ -24,10 +24,8 @@ class UserManager(FileWriter):
         self.users = []
         self.usersId = itertools.count(1)
         self.default_pfp = {
-            # "pfp_id": 1,
             "user_id": 0,
             "url": "https://storage.cloud.google.com/data_warehousing_library_data/default-pfp.svg",
-            # "added_at": datetime.now().isoformat(),
         }
 
         self.user_file = None
@@ -65,9 +63,9 @@ class UserManager(FileWriter):
             - birthday: The birthday of the user.
             - added_at: The timestamp when the user was added.
         """
-        gender = random.choice(["male", "female", "non-binary"])
+        gender = random.choice(["male", "female", "male", "female", "male", "female", "male", "female", "non-binary"])
         first_name = names.get_first_name(gender)
-        last_name = names.get_first_name(gender)
+        last_name = names.get_last_name()
         email = f"{first_name}_{last_name}@knyhozbirnia.com"
 
         return {
@@ -76,12 +74,12 @@ class UserManager(FileWriter):
             "last_name": last_name,
             "gender": gender[0],
             "email": email,
-            "birthday": self._random_birthday(),
+            "birthday": self.random_birthday(),
             "added_at": datetime.now().isoformat(),
         }
 
     @staticmethod
-    def _random_birthday(start_year=1950, end_year=datetime.now().year):
+    def random_birthday(start_year: int = 1950, end_year: int = datetime.now().year) -> str:
         """
         Generate a random birthday between the specified start_year and end_year.
 
@@ -95,7 +93,7 @@ class UserManager(FileWriter):
         year = random.randint(start_year, end_year)
         day = random.randint(1, 366)
         birthday = datetime(year, 1, 1) + timedelta(days=day - 1)
-        return birthday
+        return birthday.date().isoformat()
 
     def writeUser(self, user):
         """

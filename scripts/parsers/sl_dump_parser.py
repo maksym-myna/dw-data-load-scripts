@@ -58,7 +58,7 @@ class SLDataParser(AbstractParser, FileWriter):
 
         directory = output_files[1].rpartition("\\")[0]
         item_out_location = directory + f"\\inventory_item.{self.type_name}"
-        os.makedirs(rf"{directory}\data", exist_ok=True)
+        os.makedirs(rf"{directory}", exist_ok=True)
         with open(input_file, "r", encoding="utf-8") as f_in, open(
             output_files[0], "w", encoding="utf-8", newline=""
         ) as loan_out, open(

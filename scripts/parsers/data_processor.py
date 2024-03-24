@@ -37,7 +37,7 @@ class DataProcessor(ABC):
         unarchive_file(archive_path: str, unarchive_path: str) -> str:
             Unarchives a gzip compressed file.
         delete_file(*path: str) -> None: Deletes the specified files.
-        download_and_unarchive_datasets(cls) -> None:
+        download_and_unarchive_datasets(self) -> None:
             Downloads and unarchives the datasets.
     """
 
@@ -89,7 +89,7 @@ class DataProcessor(ABC):
             None
         """
         self.sqlite_conn.close()
-        os.remove("temp.db")
+        # os.remove("temp.db")
 
     @abstractmethod
     def run(self, directory=r"open library dump") -> None:
@@ -182,8 +182,7 @@ class DataProcessor(ABC):
         for file in path:
             os.remove(file)
 
-    @classmethod
-    def download_and_unarchive_datasets(cls) -> None:
+    def download_and_unarchive_datasets(self) -> None:
         """
         Downloads and unarchives datasets from the specified URLs.
 
@@ -200,9 +199,9 @@ class DataProcessor(ABC):
         Returns:
             None
         """
-        for url, download_path in cls.ol_files.items():
+        for url, download_path in self.ol_files.items():
             archive = DataProcessor.download_file(url, download_path)
             DataProcessor.unarchive_file(archive, "open library dump/")
 
-        for url, download_path in cls.sl_files.items():
+        for url, download_path in self.sl_files.items():
             archive = DataProcessor.download_file(url, download_path)

@@ -161,7 +161,7 @@ class OLRRParser(OLAbstractParser, FileWriter):
         """
         if work_id := self.__work_ids.get(old_id, None):
             self.cursor.execute(
-                f"SELECT work_id FROM work_isbn WHERE work_id = (?)", (work_id,)
+                f"SELECT work_id FROM work_id WHERE work_id = (?)", (work_id,)
             )
 
         return work_id if work_id and self.cursor.fetchone() else None

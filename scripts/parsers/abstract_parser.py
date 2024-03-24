@@ -62,7 +62,7 @@ class AbstractParser(ABC):
         return validated_isbns
 
     @staticmethod
-    def _capitalize_first(s: str) -> str:
+    def capitalize_first(s: str) -> str:
         """
         Capitalizes the first character of a string.
 

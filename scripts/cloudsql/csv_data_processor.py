@@ -12,17 +12,12 @@ import sqlalchemy
 class CSVDataprocessor(DataProcessor):
     def __init__(self):
         super().__init__("csv")
-        self.blobs = []
 
         self.CREDENTIALS = r"scripts\cloudsql\credentials.json"
 
         self.INSTANCE_CONNECTION_NAME = (
             f"{secrets.PROJECT_ID}:{secrets.REGION}:{secrets.INSTANCE_ID}"
         )
-
-    def __del__(self):
-        for blob in self.blobs:
-            blob.delete()
 
     def run(
         self, old_directory=r"open library dump", sld_directory=r"seattle library dump"
@@ -45,6 +40,7 @@ class CSVDataprocessor(DataProcessor):
                 ],
             )
         )
+
         self.sqlite_conn.close()
         self.user_manager.writeUsers()
 
@@ -75,12 +71,11 @@ class CSVDataprocessor(DataProcessor):
         bucket = storage_client.get_bucket(secrets.BUCKET_NAME)
         try:
             for file in files:
-                filename = file.split("\\")[-1]
+                filename = file.split("/")[-1]
                 blob = bucket.blob(filename)
 
                 with open(file, "rb") as f:
                     blob.upload_from_file(f)
-                self.blobs.append(blob)
                 table_name = filename.split(".")[0]
 
                 file_uri = f"gs://{secrets.BUCKET_NAME}/{filename}"
@@ -96,7 +91,7 @@ class CSVDataprocessor(DataProcessor):
                             "quoteCharacter": "22",  # ASCII hexadecimal for double quote
                             "fieldDelimiter": "2C",  # ASCII hexadecimal for comma
                         },
-                        "api_key": "AIzaSyAlv29u_dHxLECJUBj9aQJx5vwndfEx9fs",
+                        "api_key": secrets.CLOUD_SQL_API_KEY,
                     }
                 }
 
@@ -113,18 +108,13 @@ class CSVDataprocessor(DataProcessor):
                         print(
                             f'importing from {response.get("importContext").get("uri") } to the table {response.get("importContext").get("csvImportOptions").get("table")} is {response.get("status")}'
                         )
-
                         break
                     except errors.HttpError as e:
-                        if (
-                            e.resp.status == 409
-                        ):  # If the error is 'operationInProgress'
+                        if (e.resp.status == 409):  # If the error is 'operationInProgress'
                             print("Operation in progress, waiting...")
-                            time.sleep(10)  # Wait for 10 seconds before trying again
+                            time.sleep(10)
                         else:
-                            print(e)
                             continue
-                            # raise  # If the error is something else, raise it
         except Exception:
             pass
 
