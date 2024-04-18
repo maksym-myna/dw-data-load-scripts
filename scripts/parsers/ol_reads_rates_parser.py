@@ -1,11 +1,14 @@
-import sqlite3
 from parsers.ol_abstract_parser import OLAbstractParser
 from parsers.abstract_parser import AbstractParser
 from parsers.user_manager import UserManager
 from parsers.file_writer import FileWriter
-from enum import Enum
+
+from datetime import datetime
 from typing import Literal
+from enum import Enum
+
 import itertools
+import sqlite3
 import glob
 import os
 
@@ -55,7 +58,7 @@ class OLRRParser(OLAbstractParser, FileWriter):
         FileWriter.__init__(self, file_type)
 
         self.__id = itertools.count(1)
-        self.__work_ids = {}
+        self.__mapped_work_ids = {}
 
         self.strategy_name = strategy
         if strategy == "listing":
@@ -81,13 +84,22 @@ class OLRRParser(OLAbstractParser, FileWriter):
         if not AbstractParser.is_path_valid(input_file):
             raise NotADirectoryError(input_file)
 
+        self.__load_work_ids()
+        CHUNK_SIZE = 1000
+
         with open(input_file, "r", encoding="utf-8") as f_in, open(
             output_file, "w", encoding="utf-8", newline=""
         ) as f_out:
-            for line in f_in:
-                if result := self.__parse_line(line):
-                    self._write_strategy(f_out, result)
+            print(f"Reading file '{input_file}'- {datetime.now().isoformat()}")
+            while True:
+                lines = list(itertools.islice(f_in, CHUNK_SIZE))
+                if not lines:
+                    break
 
+                self._tuple_write_strategy(
+                    f_out,
+                    list(filter(None, [self.__parse_line(line) for line in lines])),
+                )
         return output_file
 
     def process_latest_file(
@@ -99,7 +111,7 @@ class OLRRParser(OLAbstractParser, FileWriter):
         Args:
             directory (str): The path to the directory containing the files.
         """
-        self.__work_ids = work_ids
+        self.__mapped_work_ids = work_ids
 
         files = glob.glob(
             os.path.join(directory, f"ol_dump_{self.__input_file_name}*.txt")
@@ -134,13 +146,13 @@ class OLRRParser(OLAbstractParser, FileWriter):
         return (
             None
             if not (id := next(self.__id))
-            else {
-                "id": id,
-                "reader_id": self.user_manager.get_or_generate_reader(),
-                "work_id": work_id,
-                "value": field,
-                "date": date,
-            }
+            else (
+                id,
+                self.user_manager.get_or_generate_reader(),
+                work_id,
+                field,
+                date,
+            )
         )
 
     def ratings_field_strategy(self, fields: list[str], shift: int):
@@ -159,9 +171,9 @@ class OLRRParser(OLAbstractParser, FileWriter):
         Returns:
             str or None: The work ID if found, None otherwise.
         """
-        if work_id := self.__work_ids.get(old_id, None):
-            self.cursor.execute(
-                f"SELECT work_id FROM work_id WHERE work_id = (?)", (work_id,)
-            )
+        work_id = self.__mapped_work_ids.get(old_id)
+        return work_id if work_id in self.__work_ids else None
 
-        return work_id if work_id and self.cursor.fetchone() else None
+    def __load_work_ids(self):
+        self.cursor.execute("SELECT work_id FROM work_id")
+        self.__work_ids = set(row[0] for row in self.cursor.fetchall())

@@ -4,6 +4,7 @@ import sqlite3
 from parsers.abstract_parser import AbstractParser
 import parsers.ol_reads_rates_parser as olrrsp
 import parsers.ol_dump_parser as oldumpp
+import parsers.language_parser as lp
 import parsers.sl_dump_parser as sldumpp
 
 import os
@@ -51,7 +52,7 @@ class DataProcessor(ABC):
         Returns:
             None
         """
-        self.sqlite_conn = sqlite3.connect("temp.db")
+        self.sqlite_conn = sqlite3.connect(":memory:")
         self.type_name = file_type
         self.user_manager = UserManager(file_type)
 
@@ -67,6 +68,7 @@ class DataProcessor(ABC):
         self.sl_parser = sldumpp.SLDataParser(
             self.sqlite_conn, file_type, self.user_manager
         )
+        self.language_parser = lp.LanguageParser()
         self.ol_files = {
             "https://openlibrary.org/data/ol_dump_latest.txt.gz": "open library dump/ol_dump_latest.txt.gz",
             "https://openlibrary.org/data/ol_dump_ratings_latest.txt.gz": "open library dump/ol_dump_ratings_latest.txt.gz",

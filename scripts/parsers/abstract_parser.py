@@ -48,18 +48,17 @@ class AbstractParser(ABC):
         Returns:
             list: A list of ISBN-13s.
         """
-        validated_isbns = []
-        for isbn in isbns:
-            if len(isbn) != 13:
-                isbn = "".join(
-                    char for char in isbn if char.isdigit() or char == "X"
-                ).zfill(10)
-                if len(isbn) == 10:
-                    isbn = pyisbn.Isbn(isbn).convert()  # @IgnoreException
-                else:
-                    continue
-            validated_isbns.append(isbn)
-        return validated_isbns
+        return [
+            (
+                pyisbn.Isbn(
+                    "".join([char for char in isbn if char.isdigit() or char == "X"])
+                ).convert()
+                if len(isbn) == 10
+                else isbn
+            )
+            for isbn in isbns
+            if len(isbn) in [10, 13]
+        ]
 
     @staticmethod
     def capitalize_first(s: str) -> str:

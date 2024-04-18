@@ -1,6 +1,6 @@
 import itertools
 import random
-import names
+from faker import Faker
 from datetime import datetime, timedelta
 from parsers.file_writer import FileWriter
 
@@ -21,16 +21,25 @@ class UserManager(FileWriter):
         """
         FileWriter.__init__(self, file_type)
 
+        self.fake = Faker()
         self.users = []
         self.usersId = itertools.count(1)
         self.default_pfp = {
-            "user_id": 0,
+            "user_id": 1,
             "url": "https://storage.cloud.google.com/data_warehousing_library_data/default-pfp.svg",
         }
+        self.emails = set()
+
+        self.random_genders = [
+            "male",
+            "female",
+            "non-binary",
+        ]
+        self.gender_weights = [4, 4, 1]
 
         self.user_file = None
 
-    def get_or_generate_reader(self) -> dict:
+    def get_or_generate_reader(self) -> dict[int, str] | int | None:
         """
         Retrieves an existing user ID from the list of users or generates a new one.
 
@@ -46,7 +55,7 @@ class UserManager(FileWriter):
             return id
         return random.choice(self.users)
 
-    def fill_user(self, user_id) -> None:
+    def fill_user(self, user_id) -> tuple[int, str, str, str, str, str, str, str]:
         """
         Fills the user details with random data.
 
@@ -61,25 +70,44 @@ class UserManager(FileWriter):
             - gender: The gender of the user.
             - email: The email address of the user.
             - birthday: The birthday of the user.
-            - added_at: The timestamp when the user was added.
-        """
-        gender = random.choice(["male", "female", "male", "female", "male", "female", "male", "female", "non-binary"])
-        first_name = names.get_first_name(gender)
-        last_name = names.get_last_name()
-        email = f"{first_name}_{last_name}@knyhozbirnia.com"
+            - created_at: The timestamp when the user was added.
+        """    
+        gender = random.choices(self.random_genders, weights=self.gender_weights, k=1)[0]
+        if gender == "male":
+            get_first_name = self.fake.first_name_male
+            get_last_name = self.fake.last_name_male
+        elif gender == "female":
+            get_first_name = self.fake.first_name_female
+            get_last_name = self.fake.last_name_female
+        else:
+            get_first_name = self.fake.first_name
+            get_last_name = self.fake.last_name
+        
+        first_name = get_first_name()
+        last_name = get_last_name()
 
-        return {
-            "user_id": user_id,
-            "first_name": first_name,
-            "last_name": last_name,
-            "gender": gender[0],
-            "email": email,
-            "birthday": self.random_birthday(),
-            "added_at": datetime.now().isoformat(),
-        }
+        email = f"{first_name}_{last_name}@knyhozbirnia.com"
+        index = 0
+        while email in self.emails:
+            email = f"{first_name}_{last_name}{index}@knyhozbirnia.com"
+            index+=1
+        self.emails.add(email)
+
+        return (
+            user_id,
+            first_name,
+            last_name,
+            gender[0],
+            email,
+            self.random_birthday(),
+            "USER",
+            datetime.now().isoformat(),
+        )
 
     @staticmethod
-    def random_birthday(start_year: int = 1950, end_year: int = datetime.now().year) -> str:
+    def random_birthday(
+        start_year: int = 1950, end_year: int = datetime.now().year - 6
+    ) -> str:
         """
         Generate a random birthday between the specified start_year and end_year.
 
@@ -95,7 +123,7 @@ class UserManager(FileWriter):
         birthday = datetime(year, 1, 1) + timedelta(days=day - 1)
         return birthday.date().isoformat()
 
-    def writeUser(self, user):
+    def write_user(self, user):
         """
         Writes the user information to the user file.
 
@@ -109,9 +137,9 @@ class UserManager(FileWriter):
             self.user_file = open(
                 self.get_user_file(), "w", encoding="utf-8", newline=""
             )
-        self._write_strategy(self.user_file, self.fill_user(user))
+        self._tuple_write_strategy(self.user_file, [self.fill_user(user)])
 
-    def writeUsers(self):
+    def write_users(self):
         """
         Writes the users to the user file using the specified write strategy.
 
@@ -124,9 +152,14 @@ class UserManager(FileWriter):
         Returns:
             None
         """
+        print(f"Processing users - {datetime.now().isoformat()}")
         self.user_file = open(self.get_user_file(), "w", encoding="utf-8", newline="")
-        for user in self.users:
-            self._write_strategy(self.user_file, self.fill_user(user))
+
+        users = [self.fill_user(user) for user in self.users]
+
+        self._tuple_write_strategy(self.user_file, users)
+        self.user_file.flush()
+        self.user_file.close()
 
     def writePfp(self):
         """

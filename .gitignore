@@ -12,5 +12,8 @@
 *.db*
 *.java
 *.sh
+*.kjb
+*.bin
 
 db_secrets.py
+etl/

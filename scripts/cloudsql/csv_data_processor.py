@@ -1,12 +1,17 @@
-import db_secrets as secrets
+from datetime import datetime
 
-import time
+from regex import E
 from parsers.data_processor import DataProcessor
-from google.cloud import storage
-from google.oauth2 import service_account
-from googleapiclient import discovery, errors
+
 from google.cloud.sql.connector import Connector
+from googleapiclient import discovery, errors
+from google.oauth2 import service_account
+from google.cloud import storage
+
 import sqlalchemy
+
+import db_secrets as secrets
+import time
 
 
 class CSVDataprocessor(DataProcessor):
@@ -18,16 +23,19 @@ class CSVDataprocessor(DataProcessor):
         self.INSTANCE_CONNECTION_NAME = (
             f"{secrets.PROJECT_ID}:{secrets.REGION}:{secrets.INSTANCE_ID}"
         )
+        
+        self.blobs = []
 
     def run(
         self, old_directory=r"open library dump", sld_directory=r"seattle library dump"
     ) -> None:
-        self.download_and_unarchive_datasets()
+        # self.download_and_unarchive_datasets()
 
-        files = self.old_parser.process_latest_file(old_directory)
+        files = [self.language_parser.run()]
+        files.extend(self.old_parser.process_latest_file(old_directory))
         files.extend(
             [
-                parser.process_latest_file(old_directory, self.old_parser.work_ids)
+                parser.process_latest_file(old_directory, self.old_parser.mapped_work_ids)
                 for parser in self.ol_parsers
             ]
         )
@@ -42,7 +50,7 @@ class CSVDataprocessor(DataProcessor):
         )
 
         self.sqlite_conn.close()
-        self.user_manager.writeUsers()
+        self.user_manager.write_users()
 
         service_credentials = service_account.Credentials.from_service_account_file(
             self.CREDENTIALS
@@ -56,67 +64,70 @@ class CSVDataprocessor(DataProcessor):
         pool = sqlalchemy.create_engine(
             "postgresql+pg8000://", creator=lambda: self.create_conn(sql_connector)
         )
-        with pool.connect() as db_conn:
-            db_conn.execute(
-                sqlalchemy.text(
-                    open(
-                        "scripts/sql/database_schema.sql", "r", encoding="utf-8"
-                    ).read()
-                )
-            )
-            db_conn.commit()
-            db_conn.close()
+        
+        print(f"Creating database schema - {datetime.now().isoformat()}")
+        self.execute_script(pool, "scripts/sql/database_schema.sql")
 
         storage_client = storage.Client.from_service_account_json(self.CREDENTIALS)
         bucket = storage_client.get_bucket(secrets.BUCKET_NAME)
-        try:
-            for file in files:
-                filename = file.split("/")[-1]
-                blob = bucket.blob(filename)
+        for file in files:
+            filename = file.split("\\")[-1]
 
-                with open(file, "rb") as f:
-                    blob.upload_from_file(f)
-                table_name = filename.split(".")[0]
+            blob = bucket.blob(filename)
+            self.blobs.append(blob)
 
-                file_uri = f"gs://{secrets.BUCKET_NAME}/{filename}"
+            with open(file, "rb") as f:
+                blob.upload_from_file(f)
+            table_name = filename.split(".")[0]
 
-                import_request_body = {
-                    "importContext": {
-                        "fileType": "CSV",
-                        "uri": file_uri,
-                        "database": secrets.DB_NAME,
-                        "csvImportOptions": {
-                            "table": table_name,
-                            "escapeCharacter": "5C",  # ASCII hexadecimal for backslash
-                            "quoteCharacter": "22",  # ASCII hexadecimal for double quote
-                            "fieldDelimiter": "2C",  # ASCII hexadecimal for comma
-                        },
-                        "api_key": secrets.CLOUD_SQL_API_KEY,
-                    }
+            file_uri = f"gs://{secrets.BUCKET_NAME}/{filename}"
+
+            import_request_body = {
+                "importContext": {
+                    "fileType": "CSV",
+                    "uri": file_uri,
+                    "database": secrets.DB_NAME,
+                    "csvImportOptions": {
+                        "table": table_name,
+                        "escapeCharacter": "5C",  # ASCII hexadecimal for backslash
+                        "quoteCharacter": "22",  # ASCII hexadecimal for double quote
+                        "fieldDelimiter": "2C",  # ASCII hexadecimal for comma
+                    },
+                    "api_key": secrets.CLOUD_SQL_API_KEY,
                 }
+            }
 
-                while True:
-                    try:
-                        request = service.instances().import_(
-                            project=secrets.PROJECT_ID,
-                            instance=secrets.INSTANCE_ID,
-                            body=import_request_body,
-                        )
+            while True:
+                try:
+                    request = service.instances().import_(
+                        project=secrets.PROJECT_ID,
+                        instance=secrets.INSTANCE_ID,
+                        body=import_request_body,
+                    )
 
-                        response = request.execute()
+                    response = request.execute()
 
-                        print(
-                            f'importing from {response.get("importContext").get("uri") } to the table {response.get("importContext").get("csvImportOptions").get("table")} is {response.get("status")}'
-                        )
-                        break
-                    except errors.HttpError as e:
-                        if (e.resp.status == 409):  # If the error is 'operationInProgress'
-                            print("Operation in progress, waiting...")
-                            time.sleep(10)
-                        else:
-                            continue
-        except Exception:
-            pass
+                    print(f'importing from {response.get("importContext").get("uri") } to the table {response.get("importContext").get("csvImportOptions").get("table")} is {response.get("status")}')
+                    break
+                except errors.HttpError as e:
+                    if (e.resp.status == 409):  # If the error is 'operationInProgress'
+                        print("Operation in progress, waiting...")
+                        time.sleep(10)
+                    else:
+                        continue
+        while True:
+            try:
+                self.execute_script(pool, "scripts/sql/database_after_process.sql")
+                for blob in self.blobs:
+                    blob.delete()
+                break
+            except sqlalchemy.exc.DatabaseError as e:
+                if e.orig.args[0].get('R') == 'DeadLockReport':
+                    raise Exception("Deadlock detected")
+                print(e.orig.args[0])
+                break
+            except Exception as e:
+                time.sleep(10)
 
     def create_conn(
         self, sql_connector: Connector
@@ -137,3 +148,21 @@ class CSVDataprocessor(DataProcessor):
             password=secrets.DB_PASS,
             db=secrets.DB_NAME,
         )
+
+    def execute_script(self, pool, script_path: str) -> None:
+        """
+        Executes a SQL script on the database.
+
+        Args:
+            pool: The connection pool to the database.
+            script_path: The path to the SQL script to be executed.
+
+        Returns:
+            None
+        """
+        with pool.connect() as db_conn:
+            db_conn.execute(
+                sqlalchemy.text(open(script_path, "r", encoding="utf-8").read())
+            )
+            db_conn.commit()
+            db_conn.close()
