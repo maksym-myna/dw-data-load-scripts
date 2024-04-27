@@ -6,7 +6,7 @@ from parsers.data_processor import DataProcessor
 from google.cloud.sql.connector import Connector
 from googleapiclient import discovery, errors
 from google.oauth2 import service_account
-from google.cloud import storage
+from google.cloud import storage, bigquery
 
 import sqlalchemy
 
@@ -118,16 +118,17 @@ class CSVDataprocessor(DataProcessor):
         while True:
             try:
                 self.execute_script(pool, "scripts/sql/database_after_process.sql")
-                for blob in self.blobs:
-                    blob.delete()
                 break
             except sqlalchemy.exc.DatabaseError as e:
                 if e.orig.args[0].get('R') == 'DeadLockReport':
-                    raise Exception("Deadlock detected")
-                print(e.orig.args[0])
-                break
+                    time.sleep(10)
+                else:
+                    print(e.orig.args[0])
+                    break
             except Exception as e:
+                print(e)
                 time.sleep(10)
+        self.perform_cleanup(bucket, service_credentials)
 
     def create_conn(
         self, sql_connector: Connector
@@ -166,3 +167,17 @@ class CSVDataprocessor(DataProcessor):
             )
             db_conn.commit()
             db_conn.close()
+
+    def perform_cleanup(self, bucket, credentials):
+        print(f"Cleaning up the bucket - {datetime.now().isoformat()}")
+        for blob in self.blobs:
+            blob.delete()
+        
+        print(f"Cleaning up the OLAP database - {datetime.now().isoformat()}")
+        etl_last_run = storage.Blob("last_run.txt", bucket)
+        if etl_last_run.exists():
+            etl_last_run.delete()
+        
+        bigquery_client = bigquery.Client(credentials=credentials, project=credentials.project_id)
+        bigquery_client.delete_dataset(secrets.INSTANCE_ID, delete_contents=True, not_found_ok=True)
+        bigquery_client.delete_dataset(f"{secrets.INSTANCE_ID}_staging", delete_contents=True, not_found_ok=True)        
