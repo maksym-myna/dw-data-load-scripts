@@ -780,44 +780,43 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         
         AUTHOR_LOCATION = rf"open library dump\data\author.{self.type_name}"
         NEW_AUTHOR_LOCATION = rf"open library dump\data\new_author.{self.type_name}"
-        for chunk in pd.read_csv(
+        pd_authors = pd.read_csv(
                 AUTHOR_LOCATION,
                 names=[
                     "author_id",
                     "full_name",
                     "modified_at"
                 ],
-                chunksize=500_000,
-            ):
-                author_ids_set = set(chunk['author_id'])
+            )
+        pd_authors = pd_authors.drop_duplicates(subset=['full_name'])
+        author_ids_set = set(pd_authors['author_id'])
+        for work_id, author_ids in self.__work_authors.items():
+            if work_id not in work_ids:
+                continue
+            for author_id in author_ids:
+                if author_id in author_ids_set:
+                    work_authors.add((work_id, author_id))
 
-                for work_id, author_ids in self.__work_authors.items():
-                    if work_id not in work_ids:
-                        continue
-                    for author_id in author_ids:
-                        if author_id in author_ids_set:
-                            work_authors.add((work_id, author_id))
+        self._tuple_write_strategy(
+            self.__output_files["work_author"],
+            [
+                (work_id, author_id, datetime.now().isoformat())
+                for work_id, author_id in work_authors
+            ],
+        )
+        del self.__work_authors
 
-                self._tuple_write_strategy(
-                    self.__output_files["work_author"],
-                    [
-                        (work_id, author_id, datetime.now().isoformat())
-                        for work_id, author_id in work_authors
-                    ],
-                )
-                del self.__work_authors
+        author_ids = { author_id for _, author_id in work_authors }
 
-                author_ids = { author_id for _, author_id in work_authors }
-    
-                chunk = chunk[chunk['author_id'].isin(author_ids)]
-                chunk.to_csv(
-                    NEW_AUTHOR_LOCATION,
-                    mode="a",
-                    index=False,
-                    header=False,
-                    encoding="utf-8",
-                    quoting=csv.QUOTE_ALL,
-                )
+        pd_authors = pd_authors[pd_authors['author_id'].isin(author_ids)]
+        pd_authors.to_csv(
+            NEW_AUTHOR_LOCATION,
+            mode="a",
+            index=False,
+            header=False,
+            encoding="utf-8",
+            quoting=csv.QUOTE_ALL,
+        )
         self.__output_files["author"].close()
         os.remove(AUTHOR_LOCATION)
         os.rename(NEW_AUTHOR_LOCATION, AUTHOR_LOCATION)
