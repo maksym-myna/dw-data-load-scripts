@@ -119,7 +119,6 @@ class OLDumpParser(OLAbstractParser, FileWriter):
             "Contemporary Fiction": ["modern", "realistic", "current", "society"],
             "Young Adult": ["young", "teen", "adolescent", "coming-of-age"],
             "Graphic Novel": ["graphic", "comic", "illustrated", "visual"],
-            "Short Story": ["short", "brief", "fragment"],
             "Children's": ["children", "kids", "friendship", "lessons"],
             "Biography": ["biography", "life", "person", "memoir"],
             "Food & Drink": ["food", "drink", "cooking", "cuisine", "recipe"],
@@ -1206,7 +1205,8 @@ class OLDumpParser(OLAbstractParser, FileWriter):
             if sim > max_sim:
                 max_sim = sim
                 max_sim_word = w1
-                if sim > 0.6:
-                    break
+        
+        if not max_sim_word:
+            max_sim_word = random.choice(self.themes)
 
         return self.__themes_to_subjects[max_sim_word]
