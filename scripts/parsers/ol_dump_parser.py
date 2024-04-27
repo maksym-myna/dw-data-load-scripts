@@ -670,8 +670,7 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         title = "{}. {}: {} {}".format(
             obj.get("title_prefix", ""),
             obj.get("title", ""),
-            obj.get("subtitle", ""),
-            obj.get("by_statement", ""),
+            obj.get("subtitle", "")
         )
         title = self.__html_escape(title)
         title = self.process_name(title, capitalize_first=True)
