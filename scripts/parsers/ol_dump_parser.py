@@ -1,4 +1,3 @@
-import string
 from parsers.ol_abstract_parser import OLAbstractParser
 from parsers.user_manager import UserManager
 from .abstract_parser import AbstractParser
@@ -44,7 +43,7 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         type_mapping (dict): Mapping type names to corresponding processing methods.
     """
 
-    UNKNOWN_PUBLISHER_NAME = "Unknown"
+    UNKNOWN_PUBLISHER_NAME = "Other"
     UNKNOWN_PUBLISHER = [UNKNOWN_PUBLISHER_NAME]
     BRACELESS_PUNCTUIATION = punctuation.translate(str.maketrans("", "", "(){}[]"))
     BRACELESS_PUNCTUIATION_WITH_SPACE = BRACELESS_PUNCTUIATION + whitespace
@@ -147,6 +146,7 @@ class OLDumpParser(OLAbstractParser, FileWriter):
             for subject, themes in self.__subjects_to_themes.items()
             for theme in themes
         }
+        self.themes = list(self.__themes_to_subjects.keys())
 
         self.__language_mapping: dict[str, str | None] = {
             "bel": None,
