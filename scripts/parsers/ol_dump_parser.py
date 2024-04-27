@@ -309,7 +309,7 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         if not AbstractParser.is_path_valid(input_file):
             raise NotADirectoryError(input_file)
 
-        PROCESS_EVERY_NTH_VALUE = 200
+        PROCESS_EVERY_NTH_VALUE = 10
         CHUNK_SIZE = 1000
         TO_SKIP = CHUNK_SIZE * (PROCESS_EVERY_NTH_VALUE - 1)
 
@@ -1018,7 +1018,7 @@ class OLDumpParser(OLAbstractParser, FileWriter):
     def preprocess_publisher(self, name: str) -> str:
         name = name.lower()
         s = re.sub(
-            r"\b(імені|имени|ім|им|університет|інститут|національний|національна|нац|державний|державна|у|і|й|college|institute|textbook|textbooks|books|group|incorporated|inc|house|illustrate|australia|united|states|usa|us|uk|canada|india|publications|pubns|publisher|publishers|publishing|pub|primary|secondary|collection|collections|communication|communications|company|companies|co|imprints|imprint|reprints|reprint|imprints|prints|print|press|ltd|juvenile|juv|professional|pro|pr|school|educational|education|division|library|interest|international|int|intrnl|intl|intnl|literature|txt|general|management|hall|academy|academies|academic|learning|paperbacks|paperback|bros|home|audio|video|multimedia|media|story|stories|writer|writers|org|organization|org|panamerican|american|america|departments|department|archives|archive|editions|edition|editorials|editorial|biblioteked|biblioteka|biblioteke|bbc|junior|with|for|llc|vydvo|vyd-vo|edu|gp|news|university|univ|uni|t-vo|tvo|tovarystvo|government|govt|gov|the|in|of|at|an|a|de|et)\b",
+            r"\b(імені|имени|ім|им|університет|інститут|національний|національна|нац|державний|державна|у|і|й|college|institute|textbook|textbooks|books|group|incorporated|inc|house|illustrate|australia|united|states|usa|us|uk|canada|india|publications|pubns|publisher|publishers|publishing|pub|primary|secondary|collection|collections|communication|communications|company|companies|co|imprints|imprint|reprints|reprint|imprints|prints|print|press|ltd|juvenile|juv|professional|pro|pr|school|educational|education|division|library|interest|international|int|intrnl|intl|intnl|literature|txt|general|management|hall|academy|academies|academic|learning|paperbacks|paperback|bros|home|audio|video|multimedia|media|story|stories|writer|writers|org|organization|org|panamerican|american|america|departments|department|archives|archive|editions|edition|editorials|editorial|trade|press|biblioteked|biblioteka|biblioteke|bbc|junior|with|for|llc|vydvo|vyd-vo|edu|gp|news|university|univ|uni|t-vo|tvo|tovarystvo|government|govt|gov|the|in|of|at|an|a|de|et)\b",
             "",
             name,
         )
