@@ -1,11 +1,12 @@
+import string
 from parsers.ol_abstract_parser import OLAbstractParser
 from parsers.user_manager import UserManager
 from .abstract_parser import AbstractParser
 from parsers.file_writer import FileWriter
 
+from string import punctuation, whitespace, capwords
 from typing import Callable, Dict, List, Set
 from lingua import LanguageDetectorBuilder
-from string import punctuation, whitespace
 from orjson import loads as jsonloads
 from transliterate import translit
 from functools import lru_cache
@@ -468,9 +469,9 @@ class OLDumpParser(OLAbstractParser, FileWriter):
             int: The publisher ID.
 
         """
-        publisher = self.__html_escape(
+        publisher = capwords(self.__html_escape(
             obj.get("publishers", OLDumpParser.UNKNOWN_PUBLISHER)[0]
-        ).capitalize()
+        ))
         if ukrainian_flag and publisher != OLDumpParser.UNKNOWN_PUBLISHER_NAME:
             publisher = self.transliterate_to_ukrainian(publisher, publisher=True)
 
@@ -550,7 +551,7 @@ class OLDumpParser(OLAbstractParser, FileWriter):
             None
         """
         subjects = [
-            self.__html_escape(subject).capitalize()
+            capwords(self.__html_escape(subject))
             for subject in obj.get("subjects", [])
         ]
         self.cursor.executemany(
