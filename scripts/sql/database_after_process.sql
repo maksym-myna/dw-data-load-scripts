@@ -196,7 +196,6 @@ CALL insert_work_and_subject('Caedmon', '9780061650499', 'eng', 'A Tree Grows in
 CALL insert_work_and_subject('Rentice Hall', '9780131962941', 'eng', 'Classical Myth 5th Edition', 752, 1.8, 2006, 'BOOK', 12, 'Barry B. Powell');
 CALL insert_work_and_subject('Clarkson Potter', '9780307381378', 'eng', 'Georgia cooking in an Oklahoma kitchen: recipes from my family to yours Trisha Yearwood, with Gwen Yearwood and Beth Berman', 235, 2, 2008, 'BOOK', 13, 'Trisha Yearwood');
 CALL insert_work_and_subject('Clarendon', '9780198593782', 'eng', 'Electrical machines and drives: a space-vector theory approach Peter Vas', 808, 0.8, 1992, 'BOOK', 14 , 'Peter Vas');
-CALL insert_work_and_subject('Rfection Learning', '9781606860380', 'eng', 'The Sea of Monsters Percy Jackson and the Olympians, Book 2', 279, 0.47, 2003, 'BOOK', 15, 'Rick Riordan');
 CALL insert_work_and_subject('Indypublish', '9781435327870', 'eng', 'St Ives', 260, 0.54, 2007, 'BOOK', 16, 'Louis Robert Stevenson');
 CALL insert_work_and_subject('Unknown', '9781574531725', 'eng', 'Phoenix Rising: No-Eyes Vision of the Change to Come', 203, 0.36, 1997, 'BOOK', 17, 'Nancy Fish');
 CALL insert_work_and_subject('Christian Herald Books', '9780915684687', 'eng', 'Bible Stories to Grow by', 202, 2.51, 1980, 'BOOK', 18, 'Mary Batchelor');

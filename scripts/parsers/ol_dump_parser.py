@@ -123,7 +123,6 @@ class OLDumpParser(OLAbstractParser, FileWriter):
             "Biography": ["biography", "life", "person", "memoir"],
             "Food & Drink": ["food", "drink", "cooking", "cuisine", "recipe"],
             "Art & Photography": ["art", "photography", "visual", "creative"],
-            "Self-help, guide & how-to": ["help", "impovement", "advice", "motivation"],
             "History & Travel": ["history", "travel", "culture", "explore"],
             "True Crime": ["crime", "investigation", "murder", "justice", "victim"],
             "Religion & Spirituality": ["religion", "spirituality", "faith"],
