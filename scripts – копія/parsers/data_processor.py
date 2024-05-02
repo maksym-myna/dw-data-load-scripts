@@ -1,17 +1,17 @@
 from abc import ABC, abstractmethod
 import sqlite3
+from .abstract_parser import AbstractParser
 
-from parsers.abstract_parser import AbstractParser
-import parsers.ol_reads_rates_parser as olrrsp
-import parsers.ol_dump_parser as oldumpp
-import parsers.language_parser as lp
-import parsers.sl_dump_parser as sldumpp
+from . import ol_reads_rates_parser as olrrsp
+from . import ol_dump_parser as oldumpp
+from . import language_parser as lp
+from . import sl_dump_parser as sldumpp
 
 import os
 import requests
 import gzip
 
-from parsers.user_manager import UserManager
+from .user_manager import UserManager
 
 
 class DataProcessor(ABC):
@@ -130,7 +130,7 @@ class DataProcessor(ABC):
                     downloaded_size += len(chunk)
                     f.write(chunk)
                     print(
-                        f"Download progress: {100 * downloaded_size / total_size:.2f}%", flush=True
+                        f"Download progress: {100 * downloaded_size / total_size:.2f}%"
                     )
 
         return download_path
@@ -166,7 +166,7 @@ class DataProcessor(ABC):
                     break
                 unarchived_size += len(chunk)
                 f_out.write(chunk)
-                print(f"Unarchival progress: {100 * unarchived_size / total_size:.2f}%", flush=True)
+                print(f"Unarchival progress: {100 * unarchived_size / total_size:.2f}%")
 
         return unarchive_path
 

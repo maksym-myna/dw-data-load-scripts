@@ -1,7 +1,7 @@
-from parsers.ol_abstract_parser import OLAbstractParser
-from parsers.user_manager import UserManager
+from .ol_abstract_parser import OLAbstractParser
 from .abstract_parser import AbstractParser
-from parsers.file_writer import FileWriter
+from .user_manager import UserManager
+from .file_writer import FileWriter
 
 from string import punctuation, whitespace, capwords
 from typing import Callable, Dict, List, Set
@@ -286,9 +286,12 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         self.__publishers = {}
         self.mapped_work_ids = {}
         self.work_ids = set()
-
+        
+        
+        print()
         self.cursor.executescript(
-            open("scripts/sql/sqlite_schema.sql", "r", encoding="utf-8").read()
+            # open("scripts/sql/sqlite_schema.sql", "r", encoding="utf-8").read()
+            open('M:/Personal/SE/Term 6/Data Warehouses/django-data-population/data_population/data_population_app/data_population/scripts/sql/sqlite_schema.sql', "r", encoding="utf-8").read()
         )
 
         wn.ensure_loaded()
@@ -309,13 +312,13 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         if not AbstractParser.is_path_valid(input_file):
             raise NotADirectoryError(input_file)
 
-        PROCESS_EVERY_NTH_VALUE = 200
+        PROCESS_EVERY_NTH_VALUE = 10
         CHUNK_SIZE = 1000
         TO_SKIP = CHUNK_SIZE * (PROCESS_EVERY_NTH_VALUE - 1)
 
         regex = re.compile(r"[\n\r]")
         with open(input_file, "r", encoding="utf-8") as f_in:
-            print(f"Reading file '{input_file}' - {datetime.now().isoformat()}", flush=True)
+            print(f"Reading file '{input_file}' - {datetime.now().isoformat()}")
             while True:
                 lines = list(itertools.islice(f_in, TO_SKIP, TO_SKIP + CHUNK_SIZE))
                 if not lines:
@@ -360,10 +363,10 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         if not AbstractParser.is_path_valid(directory):
             raise NotADirectoryError(directory)
 
-        os.makedirs(rf"{directory}\data", exist_ok=True)
+        os.makedirs(rf"M:/Personal/SE/Term 6/Data Warehouses/django-data-population/data_population/data_population_app/data_population/{directory}/data", exist_ok=True)
         self.__output_files = {
             type_name: open(
-                os.path.join(directory, rf"data\{type_name}.{self.type_name}"),
+                os.path.join(directory, rf"M:/Personal/SE/Term 6/Data Warehouses/django-data-population/data_population/data_population_app/data_population/data/{type_name}.{self.type_name}"),
                 "w",
                 encoding="utf-8",
                 newline="",
@@ -374,11 +377,11 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         self.__output_files = self.process_file(latest_file.path)
 
         self.user_manager.writePfp()
-        print(f"Processing publishers - {datetime.now().isoformat()}", flush=True)
+        print(f"Processing publishers - {datetime.now().isoformat()}")
         self.__write_publishers()
-        print(f"Processing authors - {datetime.now().isoformat()}", flush=True)
+        print(f"Processing authors - {datetime.now().isoformat()}")
         self.__write_authors()
-        print(f"Processing subjects - {datetime.now().isoformat()}", flush=True)
+        print(f"Processing subjects - {datetime.now().isoformat()}")
         self.__write_subjects()
 
         for f_out in self.__output_files.values():
@@ -666,7 +669,7 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         Returns:
             str: The built title string.
         """
-        title = "{}. {}: {}".format(
+        title = "{}. {}: {} {}".format(
             obj.get("title_prefix", ""),
             obj.get("title", ""),
             obj.get("subtitle", "")
@@ -857,9 +860,9 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         Returns:
             None
         """
-        WORK_LOCATION = rf"open library dump\data\work.{self.type_name}"
-        NEW_WORK_LOCATION = rf"open library dump\data\new_work.{self.type_name}"
-        PUBLISHER_LOCATION = rf"open library dump\data\publisher.{self.type_name}"
+        WORK_LOCATION = rf"M:/Personal/SE/Term 6/Data Warehouses/django-data-population/data_population/data_population_app/data_population/open library dump/data/work.{self.type_name}"
+        NEW_WORK_LOCATION = rf"M:/Personal/SE/Term 6/Data Warehouses/django-data-population/data_population/data_population_app/data_population/open library dump/data/new_work.{self.type_name}"
+        PUBLISHER_LOCATION = rf"M:/Personal/SE/Term 6/Data Warehouses/django-data-population/data_population/data_population_app/data_population/open library dump/data/publisher.{self.type_name}"
         SHORTENED_STRING_MAX_LENGTH = 50
 
         with open(PUBLISHER_LOCATION, "w", encoding="utf-8", newline="") as file:

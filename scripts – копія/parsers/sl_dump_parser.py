@@ -1,7 +1,7 @@
-from parsers.abstract_parser import AbstractParser
-from parsers.user_manager import UserManager
 from .abstract_parser import AbstractParser
-from parsers.file_writer import FileWriter
+from .user_manager import UserManager
+from .abstract_parser import AbstractParser
+from .file_writer import FileWriter
 
 from datetime import datetime, timedelta
 from io import TextIOWrapper
@@ -69,7 +69,7 @@ class SLDataParser(AbstractParser, FileWriter):
         ) as return_out, open(
             item_out_location, "w", encoding="utf-8", newline=""
         ) as item_out:
-            print(f"Reading file '{input_file}'- {datetime.now().isoformat()}", flush=True)
+            print(f"Reading file '{input_file}'- {datetime.now().isoformat()}")
             while True:
                 if not (lines := list(itertools.islice(f_in, CHUNK_SIZE))):
                     break

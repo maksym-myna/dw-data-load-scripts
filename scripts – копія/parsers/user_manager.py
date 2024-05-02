@@ -2,7 +2,7 @@ import itertools
 import random
 from faker import Faker
 from datetime import datetime, timedelta
-from parsers.file_writer import FileWriter
+from .file_writer import FileWriter
 
 
 class UserManager(FileWriter):
@@ -152,7 +152,7 @@ class UserManager(FileWriter):
         Returns:
             None
         """
-        print(f"Processing users - {datetime.now().isoformat()}", flush=True)
+        print(f"Processing users - {datetime.now().isoformat()}")
         self.user_file = open(self.get_user_file(), "w", encoding="utf-8", newline="")
 
         users = [self.fill_user(user) for user in self.users]

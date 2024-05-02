@@ -1,7 +1,7 @@
-from parsers.ol_abstract_parser import OLAbstractParser
-from parsers.abstract_parser import AbstractParser
-from parsers.user_manager import UserManager
-from parsers.file_writer import FileWriter
+from .ol_abstract_parser import OLAbstractParser
+from .abstract_parser import AbstractParser
+from .user_manager import UserManager
+from .file_writer import FileWriter
 
 from datetime import datetime
 from typing import Literal
@@ -90,7 +90,7 @@ class OLRRParser(OLAbstractParser, FileWriter):
         with open(input_file, "r", encoding="utf-8") as f_in, open(
             output_file, "w", encoding="utf-8", newline=""
         ) as f_out:
-            print(f"Reading file '{input_file}'- {datetime.now().isoformat()}", flush=True)
+            print(f"Reading file '{input_file}'- {datetime.now().isoformat()}")
             while True:
                 lines = list(itertools.islice(f_in, CHUNK_SIZE))
                 if not lines:

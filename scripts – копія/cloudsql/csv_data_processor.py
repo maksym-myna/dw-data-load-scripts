@@ -1,7 +1,5 @@
 from datetime import datetime
-
-from regex import E
-from parsers.data_processor import DataProcessor
+from ..parsers.data_processor import DataProcessor
 
 from google.cloud.sql.connector import Connector
 from googleapiclient import discovery, errors
@@ -10,7 +8,7 @@ from google.cloud import storage, bigquery
 
 import sqlalchemy
 
-import db_secrets as secrets
+from .. import db_secrets as secrets
 import time
 
 
@@ -48,28 +46,6 @@ class CSVDataprocessor(DataProcessor):
                 ],
             )
         )
-        
-        # files = [
-            # rf'{old_directory}\data\lang.csv',
-            # rf'{old_directory}\data\author.csv',
-            # rf'{old_directory}\data\publisher.csv',
-            # rf'{old_directory}\data\subject.csv',
-
-            # rf'{old_directory}\data\library_user.csv',
-            # rf'{old_directory}\data\pfp.csv', 
-            
-            # rf'{old_directory}\data\work.csv',
-            # rf'{old_directory}\data\work_author.csv',
-            # rf'{old_directory}\data\work_subject.csv',
-
-            # rf'{sld_directory}\data\inventory_item.csv',
-            # rf'{sld_directory}\data\loan.csv',
-            # rf'{sld_directory}\data\loan_return.csv',
-
-            # rf'{old_directory}\data\listing.csv',
-            # rf'{old_directory}\data\rating.csv',
-            
-        # ]
 
         self.sqlite_conn.close()
         self.user_manager.write_users()
@@ -87,8 +63,10 @@ class CSVDataprocessor(DataProcessor):
             "postgresql+pg8000://", creator=lambda: self.create_conn(sql_connector)
         )
         
-        print(f"Creating database schema - {datetime.now().isoformat()}", flush=True)
-        self.execute_script(pool, "scripts/sql/database_schema.sql")
+        print(f"Creating database schema - {datetime.now().isoformat()}")
+        self.execute_script(pool, "M:/Personal/SE/Term 6/Data Warehouses/django-data-population/data_population/data_population_app/data_population/scripts/sql/database_schema.sql")
+
+        # self.execute_script(pool, "scripts/sql/database_schema.sql")
 
         storage_client = storage.Client.from_service_account_json(self.CREDENTIALS)
         bucket = storage_client.get_bucket(secrets.BUCKET_NAME)
@@ -129,15 +107,14 @@ class CSVDataprocessor(DataProcessor):
 
                     response = request.execute()
 
-                    print(f'importing from {response.get("importContext").get("uri") } to the table {response.get("importContext").get("csvImportOptions").get("table")} is {response.get("status")}', flush=True)
+                    print(f'importing from {response.get("importContext").get("uri") } to the table {response.get("importContext").get("csvImportOptions").get("table")} is {response.get("status")}')
                     break
                 except errors.HttpError as e:
                     if (e.resp.status == 409):  # If the error is 'operationInProgress'
-                        print("Operation in progress, waiting...", flush=True)
+                        print("Operation in progress, waiting...")
                         time.sleep(10)
                     else:
                         continue
-        print(f"Adding indices and constraints - {datetime.now().isoformat()}", flush=True)
         while True:
             try:
                 self.execute_script(pool, "scripts/sql/database_after_process.sql")
@@ -146,10 +123,10 @@ class CSVDataprocessor(DataProcessor):
                 if e.orig.args[0].get('R') == 'DeadLockReport':
                     time.sleep(10)
                 else:
-                    print(e.orig.args[0], flush=True)
+                    print(e.orig.args[0])
                     break
             except Exception as e:
-                print(e, flush=True)
+                print(e)
                 time.sleep(10)
         self.perform_cleanup(bucket, service_credentials)
 
@@ -192,11 +169,11 @@ class CSVDataprocessor(DataProcessor):
             db_conn.close()
 
     def perform_cleanup(self, bucket, credentials):
-        print(f"Cleaning up the bucket - {datetime.now().isoformat()}", flush=True)
+        print(f"Cleaning up the bucket - {datetime.now().isoformat()}")
         for blob in self.blobs:
             blob.delete()
         
-        print(f"Cleaning up the OLAP database - {datetime.now().isoformat()}", flush=True)
+        print(f"Cleaning up the OLAP database - {datetime.now().isoformat()}")
         etl_last_run = storage.Blob("last_run.txt", bucket)
         if etl_last_run.exists():
             etl_last_run.delete()
