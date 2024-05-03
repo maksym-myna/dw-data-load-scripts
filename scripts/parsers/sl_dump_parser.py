@@ -161,9 +161,9 @@ class SLDataParser(AbstractParser, FileWriter):
             material_type = item.get("material_type")
 
             checkouts = (
-                qty - random.randint(-2, 2)
-                if qty > 5
-                else qty - random.randint(-1, 1) if qty > 2 else qty
+                1 if material_type in ['EBOOK', 'AUDIOBOOK'] else
+                qty - random.randint(-4, 2) if qty > 5
+                else qty - random.randint(-2, 1) if qty > 2 else qty
             )
 
             ids = []
@@ -207,17 +207,18 @@ class SLDataParser(AbstractParser, FileWriter):
                     loaned_at.isoformat(),
                 )
 
-                loan_return = (
-                    loan[0],
-                    (
-                        loaned_at
-                        + timedelta(
-                            days=random.randint(1, 14),
-                            hours=random.randint(0, 23),
-                            minutes=random.randint(0, 59),
-                        )
-                    ).isoformat(),
-                )
+                if random.randint(0, 100_000) != 99_999:
+                    loan_return = (
+                        loan[0],
+                        (
+                            loaned_at
+                            + timedelta(
+                                days=random.randint(1, 14),
+                                hours=random.randint(0, 23),
+                                minutes=random.randint(0, 59),
+                            )
+                        ).isoformat(),
+                    )
 
                 loans.append(loan)
                 returns.append(loan_return)

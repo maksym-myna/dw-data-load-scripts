@@ -309,7 +309,7 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         if not AbstractParser.is_path_valid(input_file):
             raise NotADirectoryError(input_file)
 
-        PROCESS_EVERY_NTH_VALUE = 200
+        PROCESS_EVERY_NTH_VALUE = 1
         CHUNK_SIZE = 1000
         TO_SKIP = CHUNK_SIZE * (PROCESS_EVERY_NTH_VALUE - 1)
 
@@ -509,7 +509,7 @@ class OLDumpParser(OLAbstractParser, FileWriter):
             title = self.transliterate_to_ukrainian(title)
 
         created = self.__get_created(obj)
-        number_of_pages = abs(obj.get("number_of_pages", random.randint(128, 512)))
+        number_of_pages = abs(obj.get("number_of_pages", random.randrange(128, 513, 2)))
 
         if published_at := obj.get("publish_date"):
             published_at = self.__find_year(published_at)
@@ -518,7 +518,7 @@ class OLDumpParser(OLAbstractParser, FileWriter):
 
         if weight := obj.get("weight"):
             weight = self.__find_weight_in_kg(weight)
-        if not weight:
+        if not weight or weight > 1:
             weight = self.__calculate_weight(number_of_pages)
 
         self.__insert_authors(obj, work_id)

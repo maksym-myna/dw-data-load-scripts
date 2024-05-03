@@ -106,7 +106,7 @@ class UserManager(FileWriter):
 
     @staticmethod
     def random_birthday(
-        start_year: int = 1950, end_year: int = datetime.now().year - 6
+        start_year: int = 1960, end_year: int = datetime.now().year - 6
     ) -> str:
         """
         Generate a random birthday between the specified start_year and end_year.
@@ -118,7 +118,13 @@ class UserManager(FileWriter):
         Returns:
         - birthday (datetime): A randomly generated birthday as a datetime object.
         """
-        year = random.randint(start_year, end_year)
+        year = random.random()  # Generate a random number between 0 and 1
+        if year < 0.8:  # 80% chance to generate a year between 1975 and 2005
+            return random.randint(start_year+15, end_year - 11)
+        elif year < 0.9:  # 10% chance to generate a year between 1950 and 1974
+            return random.randint(start_year, start_year+14)
+        else:  # 10% chance to generate a year between 2006 and 2017
+            return random.randint(end_year - 10, end_year)
         day = random.randint(1, 366)
         birthday = datetime(year, 1, 1) + timedelta(days=day - 1)
         return birthday.date().isoformat()

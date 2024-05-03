@@ -52,7 +52,7 @@ class DataProcessor(ABC):
         Returns:
             None
         """
-        self.sqlite_conn = sqlite3.connect(":memory:")
+        self.sqlite_conn = sqlite3.connect("temp.db")
         self.type_name = file_type
         self.user_manager = UserManager(file_type)
 
@@ -76,8 +76,8 @@ class DataProcessor(ABC):
         }
         self.sl_files = {
             "https://data.seattle.gov/resource/tmmm-ytt6.json?$query=SELECT%20"
-            "`materialtype`,%20`checkoutyear`,%20`checkoutmonth`,%20`checkouts`,%20`title"
-            "`,%20`isbn`%20WHERE%20(`isbn`%20IS%20NOT%20NULL)%20AND%20caseless_one_of(%20"
+            "`materialtype`,%20`checkoutyear`,%20`checkoutmonth`,%20`checkouts`,%20`title`,"
+            "%20`isbn`%20WHERE%20(`isbn`%20IS%20NOT%20NULL)%20AND%20caseless_one_of(%20"
             "`materialtype`,%20%22BOOK,%20ER%22,%20%22BOOK%22,%20%22AUDIOBOOK%22,%20"
             "%22EBOOK%22%20)ORDER%20BY%20`title`%20DESC%20NULL%20LAST,%20`isbn`%20DESC"
             "%20NULL%20LAST%20LIMIT%202147483647": "seattle library dump/checkouts.json"
@@ -90,8 +90,8 @@ class DataProcessor(ABC):
         Returns:
             None
         """
+        os.remove("temp.db")
         self.sqlite_conn.close()
-        # os.remove("temp.db")
 
     @abstractmethod
     def run(self, directory=r"open library dump") -> None:

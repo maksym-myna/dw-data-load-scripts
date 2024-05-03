@@ -10,6 +10,7 @@ AND inventory_item.medium != 'BOOK';
 
 alter table inventory_item drop column medium;
 
+
 -- Create funcions and set triggers
 CREATE OR REPLACE FUNCTION check_release_year() RETURNS TRIGGER AS $$
 BEGIN
@@ -41,9 +42,6 @@ CREATE TRIGGER update_author_modified_at_trigger
 BEFORE UPDATE ON publisher
 FOR EACH ROW EXECUTE PROCEDURE update_modified_at();
 CREATE TRIGGER update_author_modified_at_trigger
-BEFORE UPDATE ON library_user
-FOR EACH ROW EXECUTE PROCEDURE update_modified_at();
-CREATE TRIGGER update_author_modified_at_trigger
 BEFORE UPDATE ON author
 FOR EACH ROW EXECUTE PROCEDURE update_modified_at();
 CREATE TRIGGER update_author_modified_at_trigger
@@ -51,7 +49,6 @@ BEFORE UPDATE ON work
 FOR EACH ROW EXECUTE PROCEDURE update_modified_at();
 
 -- Create indices
-CREATE INDEX idx_library_user ON pfp (user_id);
 CREATE INDEX idx_author_full_name ON author USING gin(full_name gin_trgm_ops);
 CREATE INDEX idx_publisher_name ON publisher USING gin(publisher_name gin_trgm_ops);
 CREATE INDEX idx_language_name ON lang USING gin(lang_name gin_trgm_ops);
@@ -199,6 +196,37 @@ WHERE
 ON CONFLICT (work_id, author_id) DO NOTHING;
 
 --- Creating materialized views
+
+CREATE MATERIALIZED VIEW available_copies AS
+    SELECT
+      work_id,
+      COUNT(ii) AS qty
+    FROM
+      inventory_item ii
+    LEFT JOIN
+      loan l
+    USING
+      (item_id)
+    LEFT JOIN
+      loan_return lr
+    USING
+      (loan_id)
+    WHERE
+      (l.loaned_at = (
+        SELECT
+          MAX(l2.loaned_at)
+        FROM
+          loan l2
+        LEFT JOIN
+          loan_return lr2
+        ON
+          l2.loan_id = lr2.loan_id
+        WHERE
+          l2.item_id = l.item_id )
+        AND lr.returned_at IS NOT NULL)
+      OR l.loaned_At IS NULL
+    GROUP BY
+      work_id;
 
 CREATE OR REPLACE PROCEDURE refresh_available_copies_efficiently()
 LANGUAGE plpgsql
