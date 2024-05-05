@@ -29,7 +29,7 @@ class CSVDataprocessor(DataProcessor):
     def run(
         self, old_directory=r"open library dump", sld_directory=r"seattle library dump"
     ) -> None:
-        # self.download_and_unarchive_datasets()
+        self.download_and_unarchive_datasets()
 
         files = [self.language_parser.run()]
         files.extend(self.old_parser.process_latest_file(old_directory))

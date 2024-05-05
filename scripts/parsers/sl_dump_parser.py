@@ -219,9 +219,9 @@ class SLDataParser(AbstractParser, FileWriter):
                             )
                         ).isoformat(),
                     )
+                    returns.append(loan_return)
 
                 loans.append(loan)
-                returns.append(loan_return)
 
                 if len(loans) == CHUNK_SIZE:
                     self.__write_to_files(loan_out, item_out, return_out, loans, items, returns)

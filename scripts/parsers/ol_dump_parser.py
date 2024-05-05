@@ -150,6 +150,7 @@ class OLDumpParser(OLAbstractParser, FileWriter):
         self.__language_mapping: dict[str, str | None] = {
             "bel": None,
             "rus": None,
+            "vls": "nld",
             "fre": "fra",
             "cze": "ces",
             "wel": "cym",

@@ -118,15 +118,15 @@ class UserManager(FileWriter):
         Returns:
         - birthday (datetime): A randomly generated birthday as a datetime object.
         """
-        year = random.random()  # Generate a random number between 0 and 1
-        if year < 0.8:  # 80% chance to generate a year between 1975 and 2005
-            return random.randint(start_year+15, end_year - 11)
-        elif year < 0.9:  # 10% chance to generate a year between 1950 and 1974
-            return random.randint(start_year, start_year+14)
+        rand_year = random.random()  # Generate a random number between 0 and 1
+        if rand_year < 0.8:  # 80% chance to generate a year between 1975 and 2005
+            year =  random.randint(start_year+15, end_year - 11)
+        elif rand_year < 0.9:  # 10% chance to generate a year between 1950 and 1974
+            year = random.randint(start_year, start_year+14)
         else:  # 10% chance to generate a year between 2006 and 2017
-            return random.randint(end_year - 10, end_year)
-        day = random.randint(1, 366)
-        birthday = datetime(year, 1, 1) + timedelta(days=day - 1)
+            year = random.randint(end_year - 10, end_year)
+        day = random.randint(1, 365)
+        birthday = datetime(year, 1, 1) + timedelta(days=day)
         return birthday.date().isoformat()
 
     def write_user(self, user):
