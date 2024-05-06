@@ -276,7 +276,7 @@ $$;
 
 DROP MATERIALIZED VIEW IF EXISTS publisher_work_count;
 CREATE MATERIALIZED VIEW publisher_work_count AS
-SELECT DISTINCT ON (publisher_name, isbn)
+SELECT DISTINCT ON (work_count, publisher_name, isbn)
   publisher_name,
   isbn,
   COUNT(*) AS work_count
@@ -289,11 +289,11 @@ USING
 GROUP BY
   publisher_name, isbn
 ORDER BY
-  publisher_name, isbn, work_count DESC;
+  work_count DESC, publisher_name;
 
 DROP MATERIALIZED VIEW IF EXISTS author_work_count;
 CREATE MATERIALIZED VIEW author_work_count AS
-SELECT DISTINCT ON (full_name, isbn)
+SELECT DISTINCT ON (full_name, isbn, work_count)
   full_name,
   isbn,
   COUNT(*) AS work_count
@@ -310,7 +310,7 @@ USING
 GROUP BY
   full_name, isbn
 ORDER BY
-  full_name, isbn, work_count DESC;
+  work_count DESC, full_name;
 
 CREATE INDEX idx_author_work_counts_full_name ON author_work_count(full_name);  
 CREATE INDEX idx_publisher_work_counts_publisher_name ON publisher_work_count(publisher_name);
