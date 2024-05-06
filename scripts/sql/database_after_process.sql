@@ -276,41 +276,60 @@ $$;
 
 DROP MATERIALIZED VIEW IF EXISTS publisher_work_count;
 CREATE MATERIALIZED VIEW publisher_work_count AS
-SELECT DISTINCT ON (work_count, publisher_name, isbn)
+WITH numbered_works AS (
+  SELECT
+    publisher_name,
+    COUNT(*) OVER (PARTITION BY publisher_name) AS work_count,
+    work.isbn,
+    ROW_NUMBER() OVER (PARTITION BY publisher_name ORDER BY work.isbn) as rn
+  FROM
+    publisher
+  JOIN
+    work
+  USING
+    (publisher_id)
+)
+SELECT
   publisher_name,
-  isbn,
-  COUNT(*) AS work_count
+  work_count,
+  isbn
 FROM
-  publisher
-JOIN
-  work
-USING
-  (publisher_id)
-GROUP BY
-  publisher_name, isbn
+  numbered_works
+WHERE
+  rn = 1
 ORDER BY
-  work_count DESC, publisher_name;
+  work_count DESC;
 
 DROP MATERIALIZED VIEW IF EXISTS author_work_count;
 CREATE MATERIALIZED VIEW author_work_count AS
-SELECT DISTINCT ON (full_name, isbn, work_count)
+WITH numbered_works AS (
+  SELECT
+    full_name,
+    COUNT(*) OVER (PARTITION BY full_name) AS work_count,
+    work.isbn,
+    ROW_NUMBER() OVER (PARTITION BY full_name ORDER BY work.isbn) as rn
+  FROM
+    author
+  JOIN
+    work_author
+  USING
+    (author_id)
+  JOIN
+    work
+  USING
+    (work_id)
+)
+
+SELECT
   full_name,
-  isbn,
-  COUNT(*) AS work_count
+  work_count,
+  isbn
 FROM
-  author
-JOIN
-  work_author
-USING
-  (author_id)
-JOIN
-  work
-USING
-  (work_id)
-GROUP BY
-  full_name, isbn
+  numbered_works
+WHERE
+  rn = 1
 ORDER BY
-  work_count DESC, full_name;
+  work_count DESC;
 
 CREATE INDEX idx_author_work_counts_full_name ON author_work_count(full_name);  
 CREATE INDEX idx_publisher_work_counts_publisher_name ON publisher_work_count(publisher_name);
